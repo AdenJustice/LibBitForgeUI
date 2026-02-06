@@ -1,0 +1,9 @@
+## Interface: 120000
+## Title: Lib: BitForgeUI
+## Notes: Material Design GUI widget library for WoW addons
+## Author: BitForge Team
+## Version: 1.0.0
+## X-Category: Library
+## X-License: All Rights Reserved
+
+embeds.xml

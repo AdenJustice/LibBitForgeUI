@@ -1,0 +1,25 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+
+    <Script file="LibBitForgeUI\LibBitForgeUI.lua"/>
+
+    <Script file="LibBitForgeUI\Templates\Frame.lua"/>
+    <Include file="LibBitForgeUI\Templates\Frame.xml"/>
+
+    <Script file="LibBitForgeUI\Templates\Buttons.lua"/>
+    <Include file="LibBitForgeUI\Templates\Buttons.xml"/>
+
+    <Script file="LibBitForgeUI\Templates\EditBox.lua"/>
+    <Include file="LibBitForgeUI\Templates\EditBox.xml"/>
+
+    <Script file="LibBitForgeUI\Templates\Dropdown.lua"/>
+    <Include file="LibBitForgeUI\Templates\Dropdown.xml"/>
+
+    <Script file="LibBitForgeUI\Templates\Tab.lua"/>
+    <Include file="LibBitForgeUI\Templates\Tab.xml"/>
+
+    <Script file="LibBitForgeUI\Templates\Slider.lua"/>
+    <Include file="LibBitForgeUI\Templates\Slider.xml"/>
+
+</Ui>

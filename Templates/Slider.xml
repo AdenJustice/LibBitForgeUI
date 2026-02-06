@@ -1,0 +1,44 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+
+    <!--
+        BitForgeSliderTemplate
+        MD-style horizontal slider.
+        Colours applied in LibBitForgeUI.SliderMixin:OnLoad().
+
+        Usage:
+            local s = CreateFrame("Slider", "MySlider", UIParent, "BitForgeSliderTemplate")
+            s:SetMinMaxValues(0, 100)
+            s:SetValue(50)
+            s:SetOnChange(function(v) print(v) end)
+    -->
+    <Slider name="BitForgeSliderTemplate" virtual="true" orientation="HORIZONTAL">
+
+        <Size x="200" y="20"/>
+
+        <!-- Thin grey track bar -->
+        <Texture parentKey="Track">
+            <Size x="200" y="4"/>
+            <Anchors>
+                <Anchor point="LEFT"  x="3"  y="0"/>
+                <Anchor point="RIGHT" x="-3" y="0"/>
+            </Anchors>
+        </Texture>
+
+        <!-- Primary-coloured fill (left portion, width driven by _UpdateFill) -->
+        <Texture parentKey="Fill">
+            <Size x="1" y="4"/>
+            <Anchors>
+                <Anchor point="LEFT" x="3" y="0"/>
+            </Anchors>
+        </Texture>
+
+        <!-- Tall rectangle thumb: 6 px wide × 18 px tall -->
+        <ThumbTexture parentKey="Thumb">
+            <Size x="6" y="18"/>
+        </ThumbTexture>
+
+    </Slider>
+
+</Ui>

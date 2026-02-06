@@ -1,0 +1,12 @@
+package-as: LibBitForgeUI
+
+move-folders:
+  LibBitForgeUI-1.0/LibBitForgeUI: LibBitForgeUI
+
+ignore:
+  - .github
+  - .vscode
+  - .gitattributes
+  - .gitignore
+  - .pkgmeta
+  - .luarc.json
