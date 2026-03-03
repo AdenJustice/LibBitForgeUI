@@ -15,28 +15,32 @@
     -->
     <Slider name="BitForgeSliderTemplate" virtual="true" orientation="HORIZONTAL">
 
-        <Size x="200" y="20"/>
+        <Size x="200" y="20" />
 
-        <!-- Thin grey track bar -->
-        <Texture parentKey="Track">
-            <Size x="200" y="4"/>
-            <Anchors>
-                <Anchor point="LEFT"  x="3"  y="0"/>
-                <Anchor point="RIGHT" x="-3" y="0"/>
-            </Anchors>
-        </Texture>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <!-- Thin grey track bar -->
+                <Texture parentKey="Track">
+                    <Size x="200" y="4" />
+                    <Anchors>
+                        <Anchor point="LEFT" x="3" y="0" />
+                        <Anchor point="RIGHT" x="-3" y="0" />
+                    </Anchors>
+                </Texture>
 
-        <!-- Primary-coloured fill (left portion, width driven by _UpdateFill) -->
-        <Texture parentKey="Fill">
-            <Size x="1" y="4"/>
-            <Anchors>
-                <Anchor point="LEFT" x="3" y="0"/>
-            </Anchors>
-        </Texture>
+                <!-- Primary-coloured fill (left portion, width driven by _UpdateFill) -->
+                <Texture parentKey="Fill">
+                    <Size x="1" y="4" />
+                    <Anchors>
+                        <Anchor point="LEFT" x="3" y="0" />
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
 
         <!-- Tall rectangle thumb: 6 px wide × 18 px tall -->
         <ThumbTexture parentKey="Thumb">
-            <Size x="6" y="18"/>
+            <Size x="6" y="18" />
         </ThumbTexture>
 
     </Slider>

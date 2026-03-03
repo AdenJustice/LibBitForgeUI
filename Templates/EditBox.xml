@@ -17,7 +17,9 @@
         <Size x="200" y="32" />
 
         <!-- Text padding inside the box -->
-        <Insets left="8" right="8" top="0" bottom="0" />
+        <TextInsets>
+            <AbsInset left="8" right="8" top="0" bottom="0" />
+        </TextInsets>
 
     </EditBox>
 
@@ -35,7 +37,7 @@
 
         <Size x="200" y="120" />
 
-        <Children>
+        <Frames>
             <!-- ScrollFrame provides scroll bar; EditBox is attached in Lua OnLoad -->
             <ScrollFrame parentKey="ScrollFrame" inherits="UIPanelScrollFrameTemplate">
                 <Anchors>
@@ -43,7 +45,7 @@
                     <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-20" y="4" />
                 </Anchors>
             </ScrollFrame>
-        </Children>
+        </Frames>
 
     </Frame>
 
