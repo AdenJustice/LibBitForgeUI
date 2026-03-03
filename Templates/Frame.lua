@@ -44,7 +44,7 @@ end
 
 ---@class LibBitForgeUI.TitledFrameMixin: LibBitForgeUI.FrameMixin
 ---@field Title FontString
-local TitledFrameMixin = CreateFromMixins(LibBitForgeUI.FrameMixin)
+local TitledFrameMixin = CreateFromMixins(FrameMixin)
 
 --- Set the title bar text.
 ---@param text string
