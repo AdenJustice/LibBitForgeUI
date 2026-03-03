@@ -2,24 +2,24 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
 
-    <Script file="LibBitForgeUI\LibBitForgeUI.lua"/>
+    <Script file="LibBitForgeUI.lua" />
 
-    <Script file="LibBitForgeUI\Templates\Frame.lua"/>
-    <Include file="LibBitForgeUI\Templates\Frame.xml"/>
+    <Script file="Templates\Frame.lua" />
+    <Include file="Templates\Frame.xml" />
 
-    <Script file="LibBitForgeUI\Templates\Buttons.lua"/>
-    <Include file="LibBitForgeUI\Templates\Buttons.xml"/>
+    <Script file="Templates\Buttons.lua" />
+    <Include file="Templates\Buttons.xml" />
 
-    <Script file="LibBitForgeUI\Templates\EditBox.lua"/>
-    <Include file="LibBitForgeUI\Templates\EditBox.xml"/>
+    <Script file="Templates\EditBox.lua" />
+    <Include file="Templates\EditBox.xml" />
 
-    <Script file="LibBitForgeUI\Templates\Dropdown.lua"/>
-    <Include file="LibBitForgeUI\Templates\Dropdown.xml"/>
+    <Script file="Templates\Dropdown.lua" />
+    <Include file="Templates\Dropdown.xml" />
 
-    <Script file="LibBitForgeUI\Templates\Tab.lua"/>
-    <Include file="LibBitForgeUI\Templates\Tab.xml"/>
+    <Script file="Templates\Tab.lua" />
+    <Include file="Templates\Tab.xml" />
 
-    <Script file="LibBitForgeUI\Templates\Slider.lua"/>
-    <Include file="LibBitForgeUI\Templates\Slider.xml"/>
+    <Script file="Templates\Slider.lua" />
+    <Include file="Templates\Slider.xml" />
 
 </Ui>
