@@ -39,16 +39,17 @@
 ---@class LibBitForgeUI.TitledFrameMixin: LibBitForgeUI.FrameMixin
 ---@field SetTitle fun(self: LibBitForgeUI.TitledFrameMixin, text: string)
 
----@class LibBitForgeUI.ButtonMixin: Button
-
----@class LibBitForgeUI.ScrollElementAsButtonMixin: Button
----@field Init fun(self: LibBitForgeUI.ScrollElementAsButtonMixin, data: any)
-
----@class LibBitForgeUI.ScrollElementAsCheckMixin: CheckButton
----@field Init fun(self: LibBitForgeUI.ScrollElementAsCheckMixin, data: any)
+---@class LibBitForgeUI.ButtonMixin: Button, LibBitForgeUI.FrameMixin
 
 ---@class LibBitForgeUI.CheckboxMixin: CheckButton
+---@field OnLoad fun(self: LibBitForgeUI.CheckboxMixin)
 ---@field SyncColor fun(self: LibBitForgeUI.CheckboxMixin)
+
+---@class LibBitForgeUI.ScrollElementAsButtonMixin: LibBitForgeUI.ButtonMixin
+---@field Init fun(self: LibBitForgeUI.ScrollElementAsButtonMixin, data: any)
+
+---@class LibBitForgeUI.ScrollElementAsCheckMixin: LibBitForgeUI.CheckboxMixin
+---@field Init fun(self: LibBitForgeUI.ScrollElementAsCheckMixin, data: any)
 
 ---@class LibBitForgeUI.EditBoxBaseMixin: BackdropTemplateMixin
 
