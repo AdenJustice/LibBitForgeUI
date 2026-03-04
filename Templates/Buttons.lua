@@ -86,7 +86,6 @@ end
 function ScrollElementAsButtonMixin:OnMouseUp(button)
 end
 
-
 -- =========================================================
 -- LibBitForgeUI.CheckboxMixin
 -- Mixin for BitForgeCheckboxTemplate
@@ -116,8 +115,35 @@ local ScrollElementAsCheckMixin = CreateFromMixins(CheckboxMixin)
 function ScrollElementAsCheckMixin:OnLoad()
     local P = LibBitForgeUI.Colors
     applyColor(self:GetNormalTexture(), P.disabled)
-    applyColor(self:GetCheckedTexture(), P.primary)
+    -- Suppress the native filled CheckedTexture; use a border instead.
+    self:GetCheckedTexture():SetAlpha(0)
     applyColor(self:GetHighlightTexture(), P.primaryHover)
+
+    -- Build a 4-strip border that appears when the element is checked.
+    local thickness = 2
+    local top       = self:CreateTexture(nil, "OVERLAY")
+    local bottom    = self:CreateTexture(nil, "OVERLAY")
+    local left      = self:CreateTexture(nil, "OVERLAY")
+    local right     = self:CreateTexture(nil, "OVERLAY")
+    for _, strip in ipairs({ top, bottom, left, right }) do
+        strip:SetTexture("Interface\\Buttons\\WHITE8X8")
+        applyColor(strip, P.primary)
+        strip:Hide()
+    end
+    top:SetPoint("TOPLEFT"); top:SetPoint("TOPRIGHT"); top:SetHeight(thickness)
+    bottom:SetPoint("BOTTOMLEFT"); bottom:SetPoint("BOTTOMRIGHT"); bottom:SetHeight(thickness)
+    left:SetPoint("TOPLEFT"); left:SetPoint("BOTTOMLEFT"); left:SetWidth(thickness)
+    right:SetPoint("TOPRIGHT"); right:SetPoint("BOTTOMRIGHT"); right:SetWidth(thickness)
+    self._checkBorder = { top, bottom, left, right }
+
+    -- Hook SetChecked to keep the border in sync for both user clicks and programmatic calls.
+    local origSetChecked = self.SetChecked
+    self.SetChecked = function(f, checked)
+        origSetChecked(f, checked)
+        for _, strip in ipairs(f._checkBorder) do
+            strip:SetShown(checked == true)
+        end
+    end
     self:SetScript("OnClick", function(f, btn) f:OnClick(btn) end)
     self:SetScript("OnEnter", function(f) f:OnEnter() end)
     self:SetScript("OnLeave", function(f) f:OnLeave() end)
@@ -139,7 +165,6 @@ end
 
 function ScrollElementAsCheckMixin:OnLeave()
 end
-
 
 LibBitForgeUI.ButtonMixin = ButtonMixin
 LibBitForgeUI.CheckboxMixin = CheckboxMixin

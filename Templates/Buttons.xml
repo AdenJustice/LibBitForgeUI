@@ -112,6 +112,13 @@
     -->
     <CheckButton name="BitForgeScrollElementAsCheckTemplate" virtual="true">
 
+        <Scripts>
+            <OnLoad>
+                Mixin(self, LibBitForgeUI.ScrollElementAsCheckMixin)
+                self:OnLoad()
+            </OnLoad>
+        </Scripts>
+
         <Size x="200" y="32" />
 
         <!-- Background square; always visible, tinted Colors.disabled in OnLoad -->
