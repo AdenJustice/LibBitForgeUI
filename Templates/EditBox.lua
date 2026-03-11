@@ -1,105 +1,133 @@
 -- =========================================================
--- LibBitForgeUI edit box mixins
--- BitForgeEditBoxTemplate          – single-line MD text field
--- BitForgeMultiLineEditBoxTemplate – multi-line MD text field
+-- Shared: backdrop focus highlight (applied via Mixin in OnLoad)
 -- =========================================================
 
 local BACKDROP_CONFIG = {
-    bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-    edgeFile = "Interface\\Buttons\\WHITE8X8",
+    bgFile   = "Interface/Buttons/WHITE8X8",
+    edgeFile = "Interface/Buttons/WHITE8X8",
     tile     = true,
     tileSize = 32,
     edgeSize = 1,
     insets   = { left = 1, right = 1, top = 1, bottom = 1 },
 }
 
--- =========================================================
--- Shared: backdrop focus highlight (applied via Mixin in OnLoad)
--- =========================================================
+local function applyBackdrop(frame)
+    local P = LibBitForgeUI.Colors
 
----@class LibBitForgeUI.EditBoxBaseMixin: BackdropTemplateMixin
-local EditBoxBaseMixin = {}
+    frame:SetBackdrop(BACKDROP_CONFIG)
+    frame:SetBackdropColor(P.bg.r, P.bg.g, P.bg.b, P.bg.a)
+    frame:SetBackdropBorderColor(P.border.r, P.border.g, P.border.b, P.border.a)
 
-function EditBoxBaseMixin:OnEditFocusGained()
+    frame:SetTextColor(P.text.r, P.text.g, P.text.b, P.text.a)
+    frame:SetFont(STANDARD_TEXT_FONT, 12, "")
+end
+
+
+local function onEditFocusGained(self)
     local c = LibBitForgeUI.Colors.primary
     self:SetBackdropBorderColor(c.r, c.g, c.b, c.a)
 end
 
-function EditBoxBaseMixin:OnEditFocusLost()
+local function onEditFocusLost(self)
     local c = LibBitForgeUI.Colors.border
     self:SetBackdropBorderColor(c.r, c.g, c.b, c.a)
 end
 
-local function ApplyBackdrop(frame, editBox)
-    local P = LibBitForgeUI.Colors
-    frame:SetBackdrop(BACKDROP_CONFIG)
-    frame:SetBackdropColor(P.bg.r, P.bg.g, P.bg.b, P.bg.a)
-    frame:SetBackdropBorderColor(P.border.r, P.border.g, P.border.b, P.border.a)
-    editBox:SetTextColor(P.text.r, P.text.g, P.text.b, P.text.a)
-    editBox:SetFont(STANDARD_TEXT_FONT, 12, "")
+local function onEnterPressed(self)
+    self:ClearFocus()
 end
+
+local function onEscapePressed(self)
+    self:ClearFocus()
+end
+
 
 -- =========================================================
 -- Single-line: self is both the backdrop frame and the edit box
 -- =========================================================
 
----@class LibBitForgeUI.EditBoxMixin: EditBox, LibBitForgeUI.EditBoxBaseMixin
-local EditBoxMixin = CreateFromMixins(EditBoxBaseMixin)
+---@class LibBitForgeUI.EditBoxMixin: EditBox
+local EditBoxMixin = {}
 
 function EditBoxMixin:OnLoad()
-    ApplyBackdrop(self, self)
-    self:SetScript("OnEditFocusGained", function(f) f:OnEditFocusGained() end)
-    self:SetScript("OnEditFocusLost", function(f) f:OnEditFocusLost() end)
-    self:SetScript("OnEnterPressed", function(f) f:OnEnterPressed() end)
-    self:SetScript("OnEscapePressed", function(f) f:OnEscapePressed() end)
-    self:SetScript("OnTextChanged", function(f, userInput) f:OnTextChanged(userInput) end)
-end
+    self:SetSize(200, 32)
+    self:SetAutoFocus(false)
+    self:SetTextInsets(8, 8, 0, 0)
 
-function EditBoxMixin:OnEnterPressed()
-    self:ClearFocus()
-end
+    applyBackdrop(self)
 
-function EditBoxMixin:OnEscapePressed()
-    self:ClearFocus()
+    self:HookScript("OnEditFocusGained", onEditFocusGained)
+    self:HookScript("OnEditFocusLost", onEditFocusLost)
+    self:HookScript("OnEnterPressed", onEnterPressed)
+    self:HookScript("OnEscapePressed", onEscapePressed)
+    self:SetScript("OnTextChanged", self.OnTextChanged)
 end
 
 function EditBoxMixin:OnTextChanged()
 end
 
 -- =========================================================
--- Multi-line: self is the outer Frame; self.EditBox is the input
+-- Multi-line: self is the outer Frame; self.ScrollBox is the input
 -- =========================================================
 
----@class LibBitForgeUI.MultiLineEditBoxMixin: LibBitForgeUI.FrameMixin, LibBitForgeUI.EditBoxBaseMixin
-local MultiLineEditBoxMixin = CreateFromMixins(LibBitForgeUI.FrameMixin, EditBoxBaseMixin)
+---@class LibBitForgeUI.ScrollEditBoxMixin: LibBitForgeUI.FrameMixin, ScrollingEditBoxTemplate
+local ScrollEditBoxMixin = {}
 
-function MultiLineEditBoxMixin:OnLoad()
-    -- Create the inner EditBox programmatically to avoid $parent naming
-    -- ambiguity when nested inside a ScrollChild.
-    local editBox = CreateFrame("EditBox", nil, self.ScrollFrame)
-    editBox:SetSize(self.ScrollFrame:GetWidth(), 20)
-    editBox:SetMultiLine(true)
-    editBox:SetAutoFocus(false)
-    self.ScrollFrame:SetScrollChild(editBox)
-    self.EditBox = editBox
+function ScrollEditBoxMixin:OnLoad()
+    self:SetSize(200, 120)
 
-    ApplyBackdrop(self, editBox)
+    -- self.ScrollBox and self.ScrollBox.EditBox are created by ScrollingEditBoxTemplate.
+    -- fontName, defaultFontName, useDefaultEscapeHandling are set by its KeyValues.
+    -- OnShow/OnMouseDown are wired by its Scripts. ScrollingEditBoxMixin.OnLoad is
+    -- called automatically by the template at CreateFrame time.
+    --- @class ScrollingEditBoxTemplate_ScrollBox_EditBox: BackdropTemplate
+    local editBox = self.ScrollBox.EditBox
+    Mixin(editBox, BackdropTemplateMixin)
+    editBox:OnBackdropLoaded()
+    applyBackdrop(editBox)
+    self:SetTextInsets(8, 8, 4, 4)
 
-    -- Keep the inner edit box width in sync with the scroll frame
-    self.ScrollFrame:HookScript("OnSizeChanged", function(scrollFrame)
-        editBox:SetWidth(scrollFrame:GetWidth())
+    self:RegisterCallback("OnFocusGained", function(_, eb)
+        local c = LibBitForgeUI.Colors.primary
+        eb:SetBackdropBorderColor(c.r, c.g, c.b, c.a)
     end)
-
-    -- Route focus events from the inner EditBox up to self (which owns the backdrop)
-    editBox:SetScript("OnEditFocusGained", function() self:OnEditFocusGained() end)
-    editBox:SetScript("OnEditFocusLost", function() self:OnEditFocusLost() end)
-    editBox:SetScript("OnEscapePressed", function() self:OnEscapePressed() end)
+    self:RegisterCallback("OnFocusLost", function(_, eb)
+        local c = LibBitForgeUI.Colors.border
+        eb:SetBackdropBorderColor(c.r, c.g, c.b, c.a)
+    end)
 end
 
-function MultiLineEditBoxMixin:OnEscapePressed()
-    self.EditBox:ClearFocus()
+function ScrollEditBoxMixin:OnShow()
+    ScrollingEditBoxMixin.OnShow(self)
 end
 
-LibBitForgeUI.EditBoxBaseMixin = EditBoxBaseMixin
+function ScrollEditBoxMixin:OnMouseDown()
+    ScrollingEditBoxMixin.OnMouseDown(self)
+end
+
 LibBitForgeUI.EditBoxMixin = EditBoxMixin
-LibBitForgeUI.MultiLineEditBoxMixin = MultiLineEditBoxMixin
+LibBitForgeUI.ScrollEditBoxMixin = ScrollEditBoxMixin
+
+--- =========================================================
+--- Factory functions
+--- =========================================================
+
+---@param parent Frame
+---@return LibBitForgeUI.EditBoxMixin
+function LibBitForgeUI.CreateEditBox(parent)
+    local editBox = CreateFrame("EditBox", nil, parent, "BackdropTemplate") --[[@as LibBitForgeUI.EditBoxMixin]]
+    Mixin(editBox, EditBoxMixin)
+    editBox:OnLoad()
+
+    return editBox
+end
+
+---@param parent Frame
+---@return LibBitForgeUI.ScrollEditBoxMixin
+function LibBitForgeUI.CreateScrollEditBox(parent)
+    local frame = CreateFrame("Frame", nil, parent, "ScrollingEditBoxTemplate") --[[@as LibBitForgeUI.ScrollEditBoxMixin]]
+    Mixin(frame, ScrollEditBoxMixin)
+    frame:OnLoad()
+
+    return frame
+end

@@ -62,6 +62,51 @@ end
 local TabButtonMixin = {}
 
 function TabButtonMixin:OnLoad()
+    self:SetSize(80, 32)
+    -- Background fill (shown when selected, was in XML)
+    local bg = self:CreateTexture(nil, "BACKGROUND")
+    bg:SetTexture("Interface/Buttons/WHITE8X8")
+    bg:SetPoint("TOPLEFT")
+    bg:SetPoint("BOTTOMRIGHT")
+    bg:Hide()
+    self.Bg = bg
+    -- 1px border strips (was in XML)
+    local borderTop = self:CreateTexture(nil, "ARTWORK")
+    borderTop:SetTexture("Interface/Buttons/WHITE8X8")
+    borderTop:SetHeight(1)
+    borderTop:Hide()
+    self.BorderTop = borderTop
+    local borderBottom = self:CreateTexture(nil, "ARTWORK")
+    borderBottom:SetTexture("Interface/Buttons/WHITE8X8")
+    borderBottom:SetHeight(1)
+    borderBottom:Hide()
+    self.BorderBottom = borderBottom
+    local borderLeft = self:CreateTexture(nil, "ARTWORK")
+    borderLeft:SetTexture("Interface/Buttons/WHITE8X8")
+    borderLeft:SetWidth(1)
+    borderLeft:Hide()
+    self.BorderLeft = borderLeft
+    local borderRight = self:CreateTexture(nil, "ARTWORK")
+    borderRight:SetTexture("Interface/Buttons/WHITE8X8")
+    borderRight:SetWidth(1)
+    borderRight:Hide()
+    self.BorderRight = borderRight
+    -- 2px indicator line (was in XML)
+    local indicator = self:CreateTexture(nil, "OVERLAY")
+    indicator:SetTexture("Interface/Buttons/WHITE8X8")
+    indicator:SetHeight(2)
+    indicator:Hide()
+    self.Indicator = indicator
+    -- Label FontString (was in XML)
+    local label = self:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetJustifyH("CENTER")
+    label:SetJustifyV("MIDDLE")
+    label:SetTextColor(1, 1, 1, 1)
+    label:SetPoint("TOPLEFT", self, "TOPLEFT", 4, -4)
+    label:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -4, 4)
+    self:SetFontString(label)
+    self.Label     = label
+
     self._position = "bottom"
     self._hovered  = false
     anchorIndicator(self.Indicator, self, "BOTTOM")
@@ -78,62 +123,37 @@ function TabButtonMixin:SetTabPosition(pos)
     self._position = pos or "bottom"
     local cfg = EDGE_CONFIG[self._position] or EDGE_CONFIG.bottom
     anchorIndicator(self.Indicator, self, cfg.indicator)
-    anchorBorders(self)
     self:_UpdateVisuals()
 end
 
 function TabButtonMixin:_UpdateVisuals()
-    local P        = LibBitForgeUI.Colors
-    local cfg      = EDGE_CONFIG[self._position] or EDGE_CONFIG.bottom
-    local selected = self:GetChecked()
+    local P         = LibBitForgeUI.Colors
+    local cfg       = EDGE_CONFIG[self._position] or EDGE_CONFIG.bottom
+    local selected  = self:GetChecked()
 
-    -- ---- selected: bg + side borders + indicator (primary) ----
+    local borderMap = {
+        TOP = self.BorderTop,
+        BOTTOM = self.BorderBottom,
+        LEFT = self.BorderLeft,
+        RIGHT = self.BorderRight,
+    }
+
+    self.Bg:Hide()
+    self.Indicator:Hide()
+    for _, tex in pairs(borderMap) do tex:Hide() end
+
     if selected then
         self.Bg:Show()
         applyColor(self.Bg, P.bg)
-
         self.Indicator:Show()
         applyColor(self.Indicator, P.primary)
-
-        -- Show and tint the two side borders; hide the open and indicator edges
-        local sideSet = {}
         for _, edge in ipairs(cfg.sides) do
-            sideSet[edge] = true
+            borderMap[edge]:Show()
+            applyColor(borderMap[edge], P.primary)
         end
-
-        local borders = {
-            TOP    = self.BorderTop,
-            BOTTOM = self.BorderBottom,
-            LEFT   = self.BorderLeft,
-            RIGHT  = self.BorderRight,
-        }
-        for edge, tex in pairs(borders) do
-            if sideSet[edge] then
-                tex:Show()
-                applyColor(tex, P.primary)
-            else
-                tex:Hide()
-            end
-        end
-
-        -- ---- hovered (not selected): indicator only (primaryHover) ----
     elseif self._hovered then
-        self.Bg:Hide()
         self.Indicator:Show()
-        applyColor(self.Indicator, { r = P.primaryHover.r, g = P.primaryHover.g, b = P.primaryHover.b, a = 1.0 })
-        self.BorderTop:Hide()
-        self.BorderBottom:Hide()
-        self.BorderLeft:Hide()
-        self.BorderRight:Hide()
-
-        -- ---- default: everything hidden ----
-    else
-        self.Bg:Hide()
-        self.Indicator:Hide()
-        self.BorderTop:Hide()
-        self.BorderBottom:Hide()
-        self.BorderLeft:Hide()
-        self.BorderRight:Hide()
+        self.Indicator:SetVertexColor(P.primaryHover.r, P.primaryHover.g, P.primaryHover.b, 1.0)
     end
 end
 
@@ -176,7 +196,7 @@ end
 ---@param label   string  Text shown on the button
 ---@return CheckButton
 function TabBarMixin:AddTab(id, label)
-    local btn = CreateFrame("CheckButton", nil, self, "BitForgeTabButtonTemplate")
+    local btn = CreateFrame("CheckButton", nil, self)
     Mixin(btn, TabButtonMixin)
     btn:OnLoad()
     btn:SetSize(self._tabW, self._tabH)
@@ -202,7 +222,7 @@ function TabBarMixin:AddTab(id, label)
     table.insert(self._tabs, { id = id, button = btn })
     self._tabMap[id] = btn
 
-    return btn  --[[@as BitForgeTabButton]]
+    return btn
 end
 
 --- Set the position of the bar relative to its content frame.
@@ -244,5 +264,15 @@ function TabBarMixin:SetTabSize(w, h)
     self._tabH = h or self._tabH
 end
 
-LibBitForgeUI.TabButtonMixin = TabButtonMixin
-LibBitForgeUI.TabBarMixin = TabBarMixin
+LibBitForgeUI.Mixins.TabButton = TabButtonMixin
+LibBitForgeUI.Mixins.TabBar = TabBarMixin
+
+---@param parent any
+---@return LibBitForgeUI.TabBarMixin
+function LibBitForgeUI.CreateTabBar(parent)
+    local bar = CreateFrame("Frame", nil, parent)  --[[@as LibBitForgeUI.TabBarMixin]]
+    Mixin(bar, TabBarMixin)
+    bar:OnLoad()
+
+    return bar
+end
