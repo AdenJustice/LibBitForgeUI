@@ -8,10 +8,6 @@
 .worktrees/
 .superpowers/
 
-# The packager's output, and the external it drops in on the way. Libs/ is
-# fetched at package time from .pkgmeta and must never be committed: this
-# repository ships the library alone, and an addon embedding it supplies its
-# own LibStub.
+# The packager's output.
 .release/
-Libs/
 *.zip

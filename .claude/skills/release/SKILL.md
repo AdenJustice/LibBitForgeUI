@@ -201,18 +201,17 @@ gh run list --repo AdenJustice/LibBitForgeUI --workflow=release.yaml --limit 3
 
 If no run appears within a minute or so, say so rather than assuming the release published.
 
-Watch it to completion rather than reporting on the launch alone — two of its steps exist
-because the packager reports success on things that later fail:
+Watch it to completion rather than reporting on the launch alone:
 
 ```bash
 gh run watch --repo AdenJustice/LibBitForgeUI <run-id>
 ```
 
-A red run at *Check the package for content CurseForge refuses* means `.pkgmeta`'s ignore
-list stopped covering the LibStub external. A red run at *Check the package carries LibStub*
-means the external did not resolve and the zip would error on load for anyone installing
-the library on its own. Neither un-sends what was already uploaded; both mean the next
-revision has to fix `.pkgmeta` before it goes out.
+A green run is not proof the upload landed. CurseForge refuses an archive out of band, after
+the upload returns, so the packager prints Success! and the workflow stays green either way —
+that is how BitForge shipped two releases that never reached CurseForge. This package carries
+only this repository's files, which is why nothing audits the zip here; if that ever stops
+being true, the check has to come back before the audit does.
 
 ## Step 6 — Report
 

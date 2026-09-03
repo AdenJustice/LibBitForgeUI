@@ -152,8 +152,8 @@ Run these checks and fix what the branch made inaccurate:
    checks one against the other. If the branch added, removed or renamed a loaded file,
    both change together — and the README block must carry `lib.xml`'s **order**, since it
    exists for the embedder who lists the files in their own `.toc` instead of loading
-   `lib.xml`. This repository's own `LibBitForgeUI.toc` names `lib.xml` rather than the
-   files, so it changes only when the packaged standalone install needs it to.
+   `lib.xml`. This repository's own `LibBitForgeUI.toc` is not a third copy — it names
+   `lib.xml`, and nothing ever loads it: it is packaging metadata.
 2. **The prose that counts files.** README says "the eight `Templates\*.lua` files" and
    "sixteen global font objects". A branch that adds a factory or a font variant makes one
    of those sentences wrong; nothing will fail if it does.

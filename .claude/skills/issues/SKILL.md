@@ -40,10 +40,9 @@ there is nothing to sweep here; say so and move to GitHub.
 
 `Libs/LibBitForgeUI/` is the whole test. `Interface/AddOns/BitForge/BitForge/view.lua` is the **host's** file and is not ours, however much of this library it is calling at the time — that is the mirror image of the rule the vendoring addon's own triage runs, and the two must not both claim the same entry. **No match means no in-scope entry** — report the entry count as discarded, move to GitHub, and do not open the log for a second opinion.
 
-Two things loosen that filter, and both are the embedder's choice rather than yours:
+One thing loosens that filter, and it is the embedder's choice rather than yours: `Libs/LibBitForgeUI` is what README tells an embedder to use and what the default media path assumes, but nothing enforces it. If the user says an addon vendors the library elsewhere, grep for that path too — and say in the report that you did.
 
-- **A differently vendored copy.** `Libs/LibBitForgeUI` is what README tells an embedder to use and what the default media path assumes, but nothing enforces it. If the user says an addon vendors the library elsewhere, grep for that path too — and say in the report that you did.
-- **A standalone install.** Once this library is published on its own, a player can install it as `Interface/AddOns/LibBitForgeUI/`, with no `Libs/` segment at all. `grep -nE '(Libs/)?LibBitForgeUI/'` covers both, at the cost of also matching the host addon named `LibBitForgeUI` — which is this library, so that is not a false positive.
+What will **not** appear is an `Interface/AddOns/LibBitForgeUI/` of its own. The library is embed-only; there is no standalone install to produce a stack rooted there. A path like that means an embedder vendored it somewhere unusual, not that a player installed it.
 
 A match is a candidate, not a verdict. Confirm it by mapping the path back into this repository — `Interface/AddOns/BitForge/Libs/LibBitForgeUI/Templates/Dropdown.lua` → `Templates/Dropdown.lua` — and checking the file is here. BugGrabber truncates long paths with a leading `...`, and this library's paths are long enough for that to happen routinely, so a match whose `AddOns/` prefix was eaten stays ambiguous until that mapping resolves it.
 

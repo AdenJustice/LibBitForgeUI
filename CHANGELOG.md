@@ -20,12 +20,13 @@ of it was implemented belongs in the commit.
   other than `Libs/LibBitForgeUI` or reaches it through `lib.xml`.
 - A per-addon skin bridge, so a host can drive the primitives without either
   side naming the other.
-- Packaged releases. A tag on this repository now produces a GitHub release an
-  embedder can pin to instead of pinning a bare commit. That package carries its
-  own copy of LibStub; a vendored copy still does not, and the addon embedding it
-  supplies one.
+- Packaged releases. A tag on this repository now produces a zip and a GitHub
+  release an embedder can pin to instead of pinning a bare commit. The package
+  holds this repository's files and nothing else — embedding remains the only
+  way to use the library, and the addon that vendors it still supplies LibStub.
 
 ### Changed
 
-- `## Interface` declares 12.1.0 (`120100`) rather than 12.0.0. Only a
-  standalone install reads this — an embedded copy's `.toc` is never loaded.
+- `## Interface` declares 12.1.0 (`120100`) rather than 12.0.0. Nothing loads
+  this `.toc` — it is packaging metadata — but it is the game version the
+  release listing will show.

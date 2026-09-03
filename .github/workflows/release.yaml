@@ -52,35 +52,13 @@ jobs:
           path: .release/*.zip
           retention-days: 7
 
-      # CurseForge refuses an archive carrying web content, and it decides that
-      # after the upload returns -- the packager prints "Success!" either way,
-      # so nothing above can see it. BitForge shipped two releases that reached
-      # GitHub and never reached CurseForge before anyone noticed.
-      #
-      # The web content here would come from the LibStub external, which arrives
-      # as a whole repository checkout. .pkgmeta's ignore list is what keeps it
-      # out; this only reports that the list stopped working.
-      - name: Check the package for content CurseForge refuses
-        run: |
-          for zip in .release/*.zip; do
-            found=$(unzip -Z1 "$zip" | grep -iE '\.(html?|css|js)$' || true)
-            if [ -n "$found" ]; then
-              echo "::error::$zip carries web content CurseForge will reject:"
-              printf '%s\n' "$found" | sed 's/^/  /'
-              exit 1
-            fi
-          done
-
-      # The library ships as LibStub does: whatever LibStub.lua the packager
-      # fetched has to be in the zip, or a standalone install errors on load.
-      - name: Check the package carries LibStub
-        run: |
-          for zip in .release/*.zip; do
-            unzip -Z1 "$zip" | grep -qi 'Libs/LibStub/LibStub\.lua$' || {
-              echo "::error::$zip carries no LibStub -- a standalone install of it errors on load"
-              exit 1
-            }
-          done
+      # There is no zip audit here on purpose. CurseForge refuses an archive
+      # carrying web content and reports it out of band, so the packager prints
+      # Success! and the workflow stays green -- BitForge shipped two releases
+      # that way. What made that possible there is externals, which arrive as
+      # whole repository checkouts with docs/ attached. This package has none:
+      # every file in the zip comes from this repository and none of them is
+      # web content. Add the check back the day .pkgmeta grows an external.
 
       - name: Delete old successful runs
         env:

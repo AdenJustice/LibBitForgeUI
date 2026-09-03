@@ -4,6 +4,11 @@ BitForge's UI toolkit, extracted so more than one addon can embed it: a shared
 colour palette and font set, the skin primitives that paint them onto a frame,
 and the widget factories built from both. LibStub major `LibBitForgeUI-1.0`.
 
+**Embedding is the only way to use it.** There is no standalone install: the
+library ships inside the addon that vendors it, resolves its media relative to
+that addon, and expects that addon to have loaded `LibStub` already. A release
+here is a zip and a tag an embedder can pin to, not something a player installs.
+
 ## Embedding
 
 Vendor this repository as a submodule at `Libs/LibBitForgeUI` inside your
