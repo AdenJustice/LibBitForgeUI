@@ -273,8 +273,13 @@ end
 -- generic phantom method below is truthy for any capitalized key, so that
 -- check would always pass and then crash indexing a function value -- these
 -- read as a genuine nil until the module that owns them assigns a real child.
+-- NineSlice/Border/Bg/BG join the set for the same reason: Skin.lua's
+-- StripFrameTextures probes each the same way ("if frame.NineSlice then
+-- frame.NineSlice:SetAlpha(0) end") before a template has necessarily built
+-- one.
 local OPTIONAL_WIDGET_FIELDS = {
     Icon = true, Accent = true, Lead = true, Link = true, Footnote = true,
+    NineSlice = true, Border = true, Bg = true, BG = true,
 }
 
 --- A stand-in for a WoW frame or region.
