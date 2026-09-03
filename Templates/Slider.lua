@@ -20,7 +20,6 @@ local function UpdateFill(self)
 end
 
 function SliderMixin:OnLoad()
-    local c = colors
     self:SetSize(200, 20)
     self:SetOrientation("HORIZONTAL")
 

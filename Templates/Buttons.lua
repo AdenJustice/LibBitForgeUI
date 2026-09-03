@@ -56,6 +56,8 @@ end
 ---@field Label FontString?  Present when created with text.
 ---@field Icon  Texture?     Present when created with an icon.
 ---@field Accent Texture?    Optional, supplied by the caller.
+---@field tooltipText   string?  Set by SetTooltips.
+---@field tooltipAnchor string?  Set by SetTooltips.
 local ButtonMixin = {}
 
 do
@@ -196,6 +198,8 @@ UI.Mixins.Button = ButtonMixin
 ---@field Label FontString?  Present when created with text.
 ---@field Accent Texture?    Optional, supplied by the caller.
 ---@field hasIcon boolean?
+---@field tooltipText   string?  Set by SetTooltips.
+---@field tooltipAnchor string?  Set by SetTooltips.
 local CheckButtonMixin = {}
 do
     ---@param state "NORMAL" | "HOVER" | "CHECKED" | "DISABLED"

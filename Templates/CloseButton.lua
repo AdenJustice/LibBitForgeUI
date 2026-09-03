@@ -31,6 +31,7 @@ local GLYPH_REACH_RATIO = 0.44
 -- either ratio ever moves. Losing the runtime reference also loses
 -- UI.GetPixel()'s floor -- a drawn stroke could not thin below one physical
 -- pixel; a baked asset scaled down has no such floor.
+---@diagnostic disable-next-line: unused-local
 local GLYPH_STROKE_RATIO = 0.10
 
 -- Faint, and additive over whatever the window put behind the button. The
