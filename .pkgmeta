@@ -1,0 +1,41 @@
+package-as: LibBitForgeUI
+
+# LibStub, for the standalone install only.
+#
+# LibBitForgeUI.lua calls LibStub:NewLibrary on its eighth line with no guard, so
+# a zip carrying no LibStub errors on load for anyone who installs this library
+# on its own from CurseForge or from the GitHub release. An addon that EMBEDS the
+# library never hits that path: it supplies its own copy and never loads this
+# repository's .toc, so the dependency exists in the released package and nowhere
+# else. That is why the file is listed in the .toc rather than in lib.xml --
+# lib.xml is what an embedder loads, and it must not name a path that only exists
+# after packaging.
+#
+# Same svn://.../trunk source BitForge's own .pkgmeta uses. LibStub checks its
+# own minor before redefining itself, so whichever copy an addon set loads
+# first wins and every later one defers -- two copies is the normal case this
+# library is built for, not a conflict.
+externals:
+  Libs/LibStub:
+    url: svn://svn.wowace.com/wow/libstub/mainline/trunk
+    tag: latest
+
+enable-nolib-creation: no
+
+ignore:
+  - .claude
+  - .github
+  - tests
+  - .gitignore
+  - .wowluarc.json
+
+  # An external arrives as a checkout of the library's whole repository, so it
+  # brings whatever that repository keeps beside the library. CurseForge
+  # refuses an archive carrying web content -- and it refuses it out of band,
+  # after the upload returns, so the packager still prints Success! and the
+  # workflow still goes green. The release.yaml step that greps the zip for
+  # .html/.css/.js is what reports it; this list is what prevents it.
+  - Libs/LibStub/docs
+  - Libs/LibStub/examples
+  - Libs/LibStub/tests
+  - Libs/LibStub/*.md

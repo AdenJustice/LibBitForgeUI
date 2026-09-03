@@ -1,0 +1,9 @@
+{
+  "addonRoot": true,
+  "flavors": ["retail"],
+  "ignore": [
+    ".claude/",
+    ".worktrees/",
+    "tests/"
+  ]
+}

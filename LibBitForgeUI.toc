@@ -1,9 +1,15 @@
-## Interface: 120000
+## Interface: 120100
 ## Title: Lib: LibBitForgeUI
 ## Notes: BitForge's UI toolkit, extracted as a standalone LibStub library.
 ## Author: AdenJustice
 ## Version: @project-version@
 ## X-Category: Library
 ## X-License: MIT
+
+# Fetched by the packager from the external in .pkgmeta, so it exists in a
+# released zip and nowhere else. It is here for the player who installs this
+# library on its own; an addon embedding the library never loads this .toc
+# and supplies its own copy.
+Libs\LibStub\LibStub.lua
 
 lib.xml

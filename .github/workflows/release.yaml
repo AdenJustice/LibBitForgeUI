@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Wago is deliberately not wired up. The packager uploads there only when
+      # WAGO_API_TOKEN is in the environment, so leaving it out is the whole of
+      # it -- do not add the secret back "just in case", because an X-Wago-ID in
+      # the .toc plus a present token is all it takes to start publishing there.
+      #
+      # CurseForge uploads once the .toc carries ## X-Curse-Project-ID *and*
+      # CF_API_KEY is set on this repository. Neither exists yet, so today this
+      # step builds the zip and stops there -- no error, no upload. It starts
+      # publishing the moment the id and the secret are added, with no change
+      # here.
+      - name: Package and Release
+        uses: BigWigsMods/packager@master
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: .release/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload packaged addon (debug)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: packaged-addon
+          path: .release/*.zip
+          retention-days: 7
+
+      # CurseForge refuses an archive carrying web content, and it decides that
+      # after the upload returns -- the packager prints "Success!" either way,
+      # so nothing above can see it. BitForge shipped two releases that reached
+      # GitHub and never reached CurseForge before anyone noticed.
+      #
+      # The web content here would come from the LibStub external, which arrives
+      # as a whole repository checkout. .pkgmeta's ignore list is what keeps it
+      # out; this only reports that the list stopped working.
+      - name: Check the package for content CurseForge refuses
+        run: |
+          for zip in .release/*.zip; do
+            found=$(unzip -Z1 "$zip" | grep -iE '\.(html?|css|js)$' || true)
+            if [ -n "$found" ]; then
+              echo "::error::$zip carries web content CurseForge will reject:"
+              printf '%s\n' "$found" | sed 's/^/  /'
+              exit 1
+            fi
+          done
+
+      # The library ships as LibStub does: whatever LibStub.lua the packager
+      # fetched has to be in the zip, or a standalone install errors on load.
+      - name: Check the package carries LibStub
+        run: |
+          for zip in .release/*.zip; do
+            unzip -Z1 "$zip" | grep -qi 'Libs/LibStub/LibStub\.lua$' || {
+              echo "::error::$zip carries no LibStub -- a standalone install of it errors on load"
+              exit 1
+            }
+          done
+
+      - name: Delete old successful runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow="release.yaml" \
+            --status=success \
+            --json databaseId \
+            --jq '.[1:].[].databaseId' \
+          | xargs -r -I{} gh run delete --repo "${{ github.repository }}" {}

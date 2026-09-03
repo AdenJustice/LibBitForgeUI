@@ -1,2 +1,17 @@
 .DS_Store
+.vscode/
+.idea/
 *.bak
+
+# Worktrees for task branches, and the plan files the `plan` skill reassembles
+# from their GitHub issues. The issues are the record; those files are copies.
+.worktrees/
+.superpowers/
+
+# The packager's output, and the external it drops in on the way. Libs/ is
+# fetched at package time from .pkgmeta and must never be committed: this
+# repository ships the library alone, and an addon embedding it supplies its
+# own LibStub.
+.release/
+Libs/
+*.zip
