@@ -243,6 +243,70 @@ function skin.BuildWindowShell(frameObject, options)
     return shell
 end
 
+--- A queue that waits for a host UI's skinning facade.
+---
+--- One per addon, not one per library: LibStub hands every embedder the same
+--- library object, so a shared facade would let one addon's host handover
+--- satisfy another's. The library never learns which host, or whether there is
+--- one -- the addon calls Deliver when its own host answers.
+function lib.NewSkinBridge()
+    local handlers, facade = {}, nil
+    local bridge = {}
+
+    --- The facade, or nil while none has arrived. For a window built after
+    --- the handover that would rather skin itself inline than through OnSkin.
+    ---@return table|nil
+    function bridge.GetSkin()
+        return facade
+    end
+
+    --- Run `handler` with the facade, now or whenever it arrives.
+    ---
+    --- Both orderings are ordinary: a window that exists before the host
+    --- answers registers early, a lazily-built one long after. A late
+    --- registrant is therefore called immediately rather than queued for a
+    --- dispatch that already happened.
+    ---
+    --- Each handler is called at most once, so a host that drains its queue
+    --- twice cannot make a view re-skin frames it has already skinned. Errors
+    --- are caught: one handler's fault must not leave the handlers behind it
+    --- unpainted.
+    ---@param handler fun(facade: table)
+    function bridge.OnSkin(handler)
+        if type(handler) ~= "function" then
+            return
+        end
+
+        if facade then
+            pcall(handler, facade)
+            return
+        end
+
+        handlers[#handlers + 1] = handler
+    end
+
+    --- Hand the facade over. First call wins; later ones are no-ops.
+    ---@param newFacade table
+    function bridge.Deliver(newFacade)
+        if facade then
+            return
+        end
+
+        facade = newFacade
+
+        -- Drained rather than iterated in place: OnSkin dispatches inline
+        -- once the facade is set, so a handler registering another during
+        -- this loop would otherwise be both appended and called.
+        local pending = handlers
+        handlers = {}
+        for index = 1, #pending do
+            pcall(pending[index], facade)
+        end
+    end
+
+    return bridge
+end
+
 function skin.StyleScrollBar(scrollBar, options)
     if not scrollBar then
         return nil
