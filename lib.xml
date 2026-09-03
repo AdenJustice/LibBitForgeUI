@@ -2,4 +2,12 @@
 ..\FrameXML\UI.xsd">
 	<Script file="LibBitForgeUI.lua" />
 	<Script file="Skin.lua" />
+	<Script file="Templates\Frame.lua" />
+	<Script file="Templates\Buttons.lua" />
+	<Script file="Templates\CloseButton.lua" />
+	<Script file="Templates\EditBox.lua" />
+	<Script file="Templates\Dropdown.lua" />
+	<Script file="Templates\Bar.lua" />
+	<Script file="Templates\Slider.lua" />
+	<Script file="Templates\TextWindow.lua" />
 </Ui>

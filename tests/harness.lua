@@ -556,6 +556,10 @@ function harness.installEditBoxBehaviour(editBox)
 end
 
 function harness.installGlobals()
+    -- The client's string library extension, not part of stock Lua. Frame.lua
+    -- calls it at CreateFrame time whenever a caller passes a title.
+    _G.string.trim = function(text) return (text:gsub("^%s+", ""):gsub("%s+$", "")) end
+
     -- Every frame CreateFrame hands out, in creation order -- for
     -- descendant-walking helpers a later task may add, the way BitForge's own
     -- harness.descendantsOf reads this same table.
