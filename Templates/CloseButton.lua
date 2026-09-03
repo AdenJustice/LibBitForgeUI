@@ -1,7 +1,5 @@
 local ipairs = ipairs
-local max = math.max
 local min = math.min
-local pi = math.pi
 
 local PixelUtil = PixelUtil
 
@@ -27,6 +25,12 @@ local FRAME_LEVEL = 510
 -- same widget is asked for at 16 and at 24 and a glyph holding an absolute
 -- weight reads as a blot at the smaller size.
 local GLYPH_REACH_RATIO = 0.44
+-- No longer read by any function here: the stroke is baked into close_x.tga
+-- at GLYPH_STROKE_RATIO / GLYPH_REACH_RATIO of the asset's own side, kept so
+-- the shipped proportions are traceable and the asset can be regenerated if
+-- either ratio ever moves. Losing the runtime reference also loses
+-- UI.GetPixel()'s floor -- a drawn stroke could not thin below one physical
+-- pixel; a baked asset scaled down has no such floor.
 local GLYPH_STROKE_RATIO = 0.10
 
 -- Faint, and additive over whatever the window put behind the button. The
@@ -34,43 +38,24 @@ local GLYPH_STROKE_RATIO = 0.10
 -- the same amount under the pointer.
 local HIGHLIGHT_ALPHA = 0.1
 
--- The glyph, and the only place that knows the X is drawn rather than loaded.
--- An asset swap replaces these three functions and nothing else.
---
--- Two rotated Textures rather than two Lines: a host that removes an addon's
--- own art by fading every region that answers IsObjectType("Texture") cannot
--- see a Line to fade, so its own art would land on top of ours and both would
--- stay visible.
+-- A Texture rather than a Line, so a host can remove this addon's own art by
+-- fading every region that answers IsObjectType("Texture") -- a Line answers
+-- no such check, so a host's own X would land on top of ours.
 
 local function BuildGlyph(self)
-    local descending = self:CreateTexture(nil, "ARTWORK")
-    descending:SetColorTexture(1, 1, 1, 1)
+    local glyph = self:CreateTexture(nil, "ARTWORK")
+    glyph:SetTexture(UI.GetMedia("close_x"))
 
-    local ascending = self:CreateTexture(nil, "ARTWORK")
-    ascending:SetColorTexture(1, 1, 1, 1)
-
-    self.Glyph = { descending, ascending }
+    self.Glyph = { glyph }
 end
 
 ---@param edge number  The button's shorter side, in UI units.
 local function LayoutGlyph(self, edge)
     local reach = edge * GLYPH_REACH_RATIO / 2
+    local glyph = self.Glyph[1]
 
-    -- One physical pixel is the floor, not the unit: the stroke is proportional
-    -- so that 16 and 24 read alike, and at a UI scale below the pixel-perfect
-    -- one a proportional stroke falls under the grid and the X thins away.
-    local thickness = max(edge * GLYPH_STROKE_RATIO, UI.GetPixel())
-    local rotation = pi / 4
-
-    local descending, ascending = self.Glyph[1], self.Glyph[2]
-
-    descending:SetSize(reach * 2, thickness)
-    descending:SetPoint("CENTER", self, "CENTER", 0, 0)
-    descending:SetRotation(-rotation)
-
-    ascending:SetSize(reach * 2, thickness)
-    ascending:SetPoint("CENTER", self, "CENTER", 0, 0)
-    ascending:SetRotation(rotation)
+    glyph:SetSize(reach * 2, reach * 2)
+    glyph:SetPoint("CENTER", self, "CENTER", 0, 0)
 end
 
 ---@param state "NORMAL" | "HOVER" | "DISABLED"
@@ -130,7 +115,7 @@ end
 
 UI.Mixins.CloseButton = CloseButtonMixin
 
---- Create the suite's close button: a drawn X, no Blizzard art.
+--- Create the suite's close button: an X of our own, no Blizzard art.
 ---
 --- Three things UIPanelCloseButton carried are kept here rather than lost with
 --- it -- the narration mixin a screen reader reads the button through, a hover

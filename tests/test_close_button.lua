@@ -7,8 +7,9 @@
 -- game complains when one of those is dropped -- the button still closes the
 -- window -- so each is asserted here rather than left to be noticed.
 --
--- The rest is the glyph. It is drawn, so its weight is arithmetic rather than
--- an asset's, and the same widget is asked for at 16 and at 24.
+-- The rest is the glyph. It is a baked asset rather than drawn strokes, sized
+-- and anchored rather than laid out arithmetically, and the same widget is
+-- asked for at 16 and at 24.
 local harness = dofile("tests/harness.lua")
 
 harness.resetLibStub()
@@ -61,52 +62,31 @@ harness.assertEqual(type(button.scripts.OnLeave), "function", "and letting go of
 
 
 harness.assertEqual(type(button.Glyph), "table", "the X is exposed rather than private")
-harness.assertEqual(#button.Glyph, 2, "and is two strokes")
+harness.assertEqual(#button.Glyph, 1, "and is a single region")
 
-local descending, ascending = button.Glyph[1], button.Glyph[2]
-harness.assertEqual(descending == ascending, false, "which are separate regions")
+local glyph = button.Glyph[1]
 
--- Textures, not Lines: a host that removes an addon's own art by fading every
--- region that answers IsObjectType("Texture") has to be able to see these.
-harness.assertEqual(descending.frameType, "CreateTexture", "a stroke is a Texture region")
-harness.assertEqual(ascending.frameType, "CreateTexture", "and so is the other, not a Line")
+-- A Texture, not a Line: a host that removes an addon's own art by fading
+-- every region that answers IsObjectType("Texture") has to be able to see it.
+harness.assertEqual(glyph.frameType, "CreateTexture", "the glyph is a Texture region")
 
--- A solid colour rather than an atlas: the widget owns its colour, so the
--- palette can move without an asset being redrawn.
-harness.assertDeepEqual(
-    { descending.calls.SetColorTexture[1], descending.calls.SetColorTexture[2],
-        descending.calls.SetColorTexture[3], descending.calls.SetColorTexture[4] },
-    { 1, 1, 1, 1 }, "each stroke is a solid white texture")
+-- A baked asset rather than drawn strokes, reached through the library's own
+-- media path -- an embedder that vendors the library elsewhere still finds it.
+harness.assertEqual(glyph.calls.SetTexture[1], UI.GetMedia("close_x"),
+    "the X is loaded from the suite's own art rather than drawn")
 
--- Both strokes anchor at the very same point, so the X is centred without
--- needing a pair of offsets mirrored against each other.
-local descendingPoint = descending.calls.SetPoint
-local ascendingPoint = ascending.calls.SetPoint
-
-harness.assertEqual(descendingPoint[1], "CENTER", "a stroke anchors to the button's centre")
-harness.assertEqual(descendingPoint[2], button, "directly")
-harness.assertEqual(descendingPoint[4], 0, "with no offset")
-harness.assertEqual(descendingPoint[5], 0, "in either direction")
-harness.assertDeepEqual(ascendingPoint, descendingPoint,
-    "and the second stroke anchors at exactly the same point")
-
--- The two strokes cross: rotated a quarter turn apart rather than parallel,
--- which would still look like a line. Only the difference between the two
--- angles is asserted, not either literal value, so a convention change
--- (radians vs degrees, sign) fails this rather than passing it by accident.
-local descendingRotation = descending.calls.SetRotation[1]
-local ascendingRotation = ascending.calls.SetRotation[1]
-harness.assertEqual(math.abs(descendingRotation - ascendingRotation), math.pi / 2,
-    "the two strokes are rotated a quarter turn apart, so they cross")
+local glyphPoint = glyph.calls.SetPoint
+harness.assertEqual(glyphPoint[1], "CENTER", "the glyph anchors to the button's centre")
+harness.assertEqual(glyphPoint[2], button, "directly")
+harness.assertEqual(glyphPoint[4], 0, "with no offset")
+harness.assertEqual(glyphPoint[5], 0, "in either direction")
 
 -- The whole reason for this change: a host's FadeRegions sets alpha to 0 on
 -- every region that answers IsObjectType("Texture"). Simulating exactly that
--- against both strokes should leave nothing of the glyph drawn.
-descending:SetAlpha(0)
-ascending:SetAlpha(0)
-harness.assertEqual(descending.calls.SetAlpha[1], 0, "a host's fade reaches the first stroke")
-harness.assertEqual(ascending.calls.SetAlpha[1], 0,
-    "and the second, leaving nothing of the glyph drawn")
+-- against the glyph should leave nothing of it drawn.
+glyph:SetAlpha(0)
+harness.assertEqual(glyph.calls.SetAlpha[1], 0,
+    "a host's fade reaches the glyph, leaving nothing of it drawn")
 
 -- glyph colours
 
@@ -114,15 +94,10 @@ local DANGER = { colors.danger:GetRGBA() }
 local HOVER = { colors.textHover:GetRGBA() }
 local DISABLED = { colors.textDisabled:GetRGBA() }
 
---- What the two strokes were last painted, as one answer -- the X is one glyph
---- and a widget that coloured half of it is a defect, not a state.
+--- What the glyph was last painted, as one answer.
 local function strokeColor()
-    local first = descending.calls.SetVertexColor
-    local second = ascending.calls.SetVertexColor
-    harness.assertDeepEqual({ first[1], first[2], first[3], first[4] },
-        { second[1], second[2], second[3], second[4] },
-        "both strokes are painted the same")
-    return { first[1], first[2], first[3], first[4] }
+    local call = glyph.calls.SetVertexColor
+    return { call[1], call[2], call[3], call[4] }
 end
 
 harness.assertDeepEqual(strokeColor(), DANGER,
@@ -155,49 +130,29 @@ local small = UI.CreateCloseButton(parent, 16)
 local smallSize = small.calls.SetSize
 harness.assertDeepEqual({ smallSize[1], smallSize[2] }, { 16, 16 }, "and a size is honoured")
 
---- The stroke weight and the reach of one arm, for a button of `edge`.
-local function glyphMetrics(closeButton)
-    local width, height = closeButton.Glyph[1].calls.SetSize[1], closeButton.Glyph[1].calls.SetSize[2]
-    return height, width / 2
+--- The glyph's own edge length, for a button of `edge`. Width and height are
+--- equal -- the region is square, so either SetSize argument answers it.
+local function glyphSize(closeButton)
+    return closeButton.Glyph[1].calls.SetSize[1]
 end
 
-local wideStroke, wideReach = glyphMetrics(button)
-local smallStroke, smallReach = glyphMetrics(small)
+local wideGlyph = glyphSize(button)
+local smallGlyph = glyphSize(small)
 
-harness.assertEqual(smallStroke < wideStroke, true,
-    "the smaller button draws the lighter stroke")
-harness.assertEqual(smallReach < wideReach, true, "and the shorter arm")
+harness.assertEqual(smallGlyph < wideGlyph, true, "the smaller button draws the smaller glyph")
 
--- Proportional, not merely smaller: an X that kept its weight while its box
--- shrank is the blot the ratios exist to avoid. 16/24 either way.
-harness.assertEqual(smallStroke / wideStroke, 16 / 24,
-    "the stroke holds its proportion of the button")
-harness.assertEqual(smallReach / wideReach, 16 / 24, "and so does the reach")
+-- Proportional, not merely smaller: an X that kept its size while its box
+-- shrank is the blot the reach ratio exists to avoid. 16/24 either way.
+harness.assertEqual(smallGlyph / wideGlyph, 16 / 24, "the glyph holds its proportion of the button")
 
 -- The glyph fits inside the button rather than running to its edge: the button
 -- is the hit target and the X is the mark on it.
-harness.assertEqual(wideReach * 2 < 24, true, "the X sits inside its button")
+harness.assertEqual(wideGlyph < 24, true, "the X sits inside its button")
 
 -- A caller that sizes the button after building it gets a glyph to match. This
 -- is the path BitForge_TaskTome used before the size became a factory
 -- argument, and the one any consumer takes who resizes a window's furniture.
 button.scripts.OnSizeChanged(button, 16, 16)
-harness.assertEqual(glyphMetrics(button), smallStroke,
-    "a later resize relays the glyph out")
-
--- the pixel-grid floor
-
--- The stroke is a fraction of the button, so at a UI scale coarse enough it
--- would fall below one physical pixel and the X would thin away. GetPixel is
--- the floor. Driven by shrinking the button rather than the scale, since one
--- physical pixel is a fixed size and the proportional stroke is not.
-local floorParent = harness.newFrame("Frame", "CloseButtonFloorParent")
-local tiny = UI.CreateCloseButton(floorParent, 4)
-local tinyStroke = tiny.Glyph[1].calls.SetSize[2]
-
-harness.assertEqual(tinyStroke, UI.GetPixel(),
-    "a button too small for a proportional stroke still draws one physical pixel")
-harness.assertEqual(tinyStroke > 4 * (smallStroke / 16), true,
-    "which is thicker than the proportion alone would have given")
+harness.assertEqual(glyphSize(button), smallGlyph, "a later resize relays the glyph out")
 
 harness.report()
