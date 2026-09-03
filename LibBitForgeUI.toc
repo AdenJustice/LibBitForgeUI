@@ -1,0 +1,9 @@
+## Interface: 120000
+## Title: Lib: LibBitForgeUI
+## Notes: BitForge's UI toolkit, extracted as a standalone LibStub library.
+## Author: AdenJustice
+## Version: @project-version@
+## X-Category: Library
+## X-License: MIT
+
+lib.xml
