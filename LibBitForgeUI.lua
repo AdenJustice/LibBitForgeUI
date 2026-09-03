@@ -43,3 +43,156 @@ function lib.GetMedia(filename)
     end
     return mediaPath .. "/" .. filename
 end
+
+local floor = math.floor
+local UIParent = UIParent
+local CreateColor = CreateColorFromHexString
+
+---@class BitForge.UI.Colors
+---@field point colorRGBA
+---@field hover colorRGBA
+---@field danger colorRGBA
+---@field bg colorRGBA
+---@field bgDisabled colorRGBA
+---@field surface colorRGBA
+---@field disabled colorRGBA
+---@field text colorRGBA
+---@field textHover colorRGBA
+---@field textDisabled colorRGBA
+---@field edge colorRGBA
+---@field edgeHover colorRGBA
+
+-- Populated into the table, never assigned over it: a widget built by an
+-- older minor holds a reference to the objects in here.
+local colors = lib.Colors
+colors.point = colors.point or CreateColor("FF45B7D1")
+colors.hover = colors.hover or CreateColor("FF4B5267")
+-- The one warm token, and the suite's only red: a close affordance and a
+-- refused save both have to read as "not the rest of this window", while
+-- every other entry here is a surface, an edge or a shade of text. The
+-- value is BitForge_EUI's own refusal red, promoted rather than invented.
+colors.danger = colors.danger or CreateColor("FFFF4D4D")
+colors.bg = colors.bg or CreateColor("FF121212")
+colors.bgDisabled = colors.bgDisabled or CreateColor("7F121212")
+colors.surface = colors.surface or CreateColor("FF1E1E1F")
+colors.disabled = colors.disabled or CreateColor("FF181819")
+colors.text = colors.text or CreateColor("FF888888")
+colors.textHover = colors.textHover or CreateColor("FFFFFFFF")
+colors.textDisabled = colors.textDisabled or CreateColor("FF4A4A4B")
+colors.edge = colors.edge or CreateColor("FF000000")
+colors.edgeHover = colors.edgeHover or CreateColor("FF2A2A2B")
+
+--- The size of `px` physical pixels in UI units, at UIParent's effective scale.
+--- Use it wherever a pixel-perfect value is needed (edgeSize, SetHeight, etc.).
+---@param px number?  Defaults to 1.
+---@return number
+function lib.GetPixel(px)
+    return PixelUtil.GetNearestPixelSize(px or 1, UIParent:GetEffectiveScale(), 1)
+end
+
+function lib.CreateSeparatorTexture(parent)
+    assert(parent and parent.IsObjectType and parent:IsObjectType("Frame"))
+    local width = floor(parent:GetWidth() * .85)
+
+    local line = parent:CreateTexture(nil, "ARTWORK")
+    PixelUtil.SetSize(line, width, 1)
+    line:SetPoint("CENTER")
+    line:SetTexture("Interface/Common/UI-TooltipDivider-Transparent")
+    local c = lib.Colors.point
+    line:SetVertexColor(c.r, c.g, c.b, 0.5)
+
+    return line
+end
+
+---@class BitForgeFontDef
+---@field file   string|nil   Font file path (defaults to STANDARD_TEXT_FONT)
+---@field size   number|nil   Point size
+---@field flags  string|nil   Outline flags: "", "OUTLINE", or "THICKOUTLINE"
+---@field shadow boolean|nil  True to render a 1-pixel drop shadow
+---@field color  colorRGBA|nil  Text color (defaults to white)
+
+---@class BitForgeFontVariants
+---@field Small               Font
+---@field Normal              Font
+---@field Large               Font
+---@field Huge                Font
+---@field SmallOutline        Font
+---@field NormalOutline       Font
+---@field LargeOutline        Font
+---@field HugeOutline         Font
+---@field SmallShadow         Font
+---@field NormalShadow        Font
+---@field LargeShadow         Font
+---@field HugeShadow          Font
+---@field SmallOutlineShadow  Font
+---@field NormalOutlineShadow Font
+---@field LargeOutlineShadow  Font
+---@field HugeOutlineShadow   Font
+
+-- Populated into the table, never assigned over it: a widget holds a Font
+-- object through SetFontObject, and a replaced object silently stops
+-- tracking SetFonts.
+local fonts = lib.Fonts
+
+local FONT_SIZES = { Small = 10, Normal = 12, Large = 14, Huge = 20 }
+-- CJK fonts generally need to be larger to be legible at the same point size
+local isCJK = GetLocale() == "zhCN" or GetLocale() == "zhTW" or GetLocale() == "koKR"
+if isCJK then
+    for key, value in pairs(FONT_SIZES) do
+        FONT_SIZES[key] = value + 1
+    end
+end
+
+local FONT_COMBINATIONS = {
+    { suffix = "",              flags = "",        shadow = false },
+    { suffix = "Outline",       flags = "OUTLINE", shadow = false },
+    { suffix = "Shadow",        flags = "",        shadow = true },
+    { suffix = "OutlineShadow", flags = "OUTLINE", shadow = true },
+}
+
+local function CreateFontObject(name, size, flags, shadow)
+    local font = CreateFont(name)
+    font:SetFont(STANDARD_TEXT_FONT, size, flags)
+    font:SetTextColor(1, 1, 1)
+    if shadow then
+        font:SetShadowOffset(1, -1)
+        font:SetShadowColor(0, 0, 0, 1)
+    end
+    return font
+end
+
+for sizeName, sizeVal in pairs(FONT_SIZES) do
+    for _, combo in ipairs(FONT_COMBINATIONS) do
+        local key = combo.suffix == "" and sizeName or (sizeName .. combo.suffix)
+        local font = fonts[key]
+        if font then
+            font:SetFont(STANDARD_TEXT_FONT, sizeVal, combo.flags)
+        else
+            fonts[key] = CreateFontObject("BitForgeFont" .. key, sizeVal, combo.flags, combo.shadow)
+        end
+    end
+end
+
+--- Override font settings on one or more variants.  Changes re-apply immediately
+--- to existing Font objects.  Keys match BitForgeFontVariants field names.
+---@param overrides table<string, BitForgeFontDef>
+function lib:SetFonts(overrides)
+    for key, def in pairs(overrides) do
+        local font = self.Fonts[key]
+        if font then
+            local curFile, curSize, curFlags = font:GetFont()
+            font:SetFont(def.file or curFile, def.size or curSize, def.flags or curFlags)
+            local c = def.color
+            if c then
+                font:SetTextColor(c.r or 1, c.g or 1, c.b or 1, c.a or 1)
+            end
+            if def.shadow == true then
+                font:SetShadowOffset(1, -1)
+                font:SetShadowColor(0, 0, 0, 1)
+            elseif def.shadow == false then
+                font:SetShadowOffset(0, 0)
+                font:SetShadowColor(0, 0, 0, 0)
+            end
+        end
+    end
+end
