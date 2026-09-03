@@ -1,6 +1,7 @@
 local ipairs = ipairs
 local max = math.max
 local min = math.min
+local pi = math.pi
 
 local PixelUtil = PixelUtil
 
@@ -36,18 +37,17 @@ local HIGHLIGHT_ALPHA = 0.1
 -- The glyph, and the only place that knows the X is drawn rather than loaded.
 -- An asset swap replaces these three functions and nothing else.
 --
--- Two Lines rather than two rotated textures: Texture:SetRotation turns the
--- texture coordinates inside a region that stays axis-aligned, so a solid
--- WHITE8X8 bar rotated 45 degrees is still an upright bar with its corners
--- clipped. A Line takes two endpoints and a thickness, which is what a stroke
--- is.
+-- Two rotated Textures rather than two Lines: a host that removes an addon's
+-- own art by fading every region that answers IsObjectType("Texture") cannot
+-- see a Line to fade, so its own art would land on top of ours and both would
+-- stay visible.
 
 local function BuildGlyph(self)
-    local descending = self:CreateLine(nil, "ARTWORK")
-    descending:SetTexture(GLYPH_TEXTURE)
+    local descending = self:CreateTexture(nil, "ARTWORK")
+    descending:SetColorTexture(1, 1, 1, 1)
 
-    local ascending = self:CreateLine(nil, "ARTWORK")
-    ascending:SetTexture(GLYPH_TEXTURE)
+    local ascending = self:CreateTexture(nil, "ARTWORK")
+    ascending:SetColorTexture(1, 1, 1, 1)
 
     self.Glyph = { descending, ascending }
 end
@@ -60,16 +60,17 @@ local function LayoutGlyph(self, edge)
     -- so that 16 and 24 read alike, and at a UI scale below the pixel-perfect
     -- one a proportional stroke falls under the grid and the X thins away.
     local thickness = max(edge * GLYPH_STROKE_RATIO, UI.GetPixel())
+    local rotation = pi / 4
 
     local descending, ascending = self.Glyph[1], self.Glyph[2]
 
-    descending:SetThickness(thickness)
-    descending:SetStartPoint("CENTER", self, -reach, reach)
-    descending:SetEndPoint("CENTER", self, reach, -reach)
+    descending:SetSize(reach * 2, thickness)
+    descending:SetPoint("CENTER", self, "CENTER", 0, 0)
+    descending:SetRotation(-rotation)
 
-    ascending:SetThickness(thickness)
-    ascending:SetStartPoint("CENTER", self, -reach, -reach)
-    ascending:SetEndPoint("CENTER", self, reach, reach)
+    ascending:SetSize(reach * 2, thickness)
+    ascending:SetPoint("CENTER", self, "CENTER", 0, 0)
+    ascending:SetRotation(rotation)
 end
 
 ---@param state "NORMAL" | "HOVER" | "DISABLED"
