@@ -31,10 +31,10 @@ end
 -- pinned against its own hex so a transcription typo fails here, not in game.
 local dangerR, dangerG, dangerB, dangerA = lib.Colors.danger:GetRGBA()
 local expectedR, expectedG, expectedB, expectedA = CreateColorFromHexString("FFFF4D4D"):GetRGBA()
-harness.assertEqual(dangerR, expectedR, "danger's red channel matches Core.lua's hex")
-harness.assertEqual(dangerG, expectedG, "danger's green channel matches Core.lua's hex")
-harness.assertEqual(dangerB, expectedB, "danger's blue channel matches Core.lua's hex")
-harness.assertEqual(dangerA, expectedA, "danger's alpha channel matches Core.lua's hex")
+harness.assertEqual(dangerR, expectedR, "danger's red channel matches the pinned hex")
+harness.assertEqual(dangerG, expectedG, "danger's green channel matches the pinned hex")
+harness.assertEqual(dangerB, expectedB, "danger's blue channel matches the pinned hex")
+harness.assertEqual(dangerA, expectedA, "danger's alpha channel matches the pinned hex")
 
 -- the fonts
 
@@ -81,7 +81,23 @@ for key, font in pairs(lib.Fonts) do
     fontRefs[key] = font
 end
 
+-- Intercept the hex the palette resolves for "point", the way a real minor
+-- bump would ship a changed hex literal, so the reload below can prove the
+-- new value actually reaches the reused object -- not merely that the
+-- object survived. `or` in the palette loop would pass identity here while
+-- leaving the previous minor's RGBA in place forever.
+local realCreateColorFromHexString = _G.CreateColorFromHexString
+local POINT_HEX, CHANGED_POINT_HEX = "FF45B7D1", "FF00FF00"
+_G.CreateColorFromHexString = function(hexString)
+    if hexString == POINT_HEX then
+        return realCreateColorFromHexString(CHANGED_POINT_HEX)
+    end
+    return realCreateColorFromHexString(hexString)
+end
+
 harness.loadLibraryAgain(2)
+
+_G.CreateColorFromHexString = realCreateColorFromHexString
 
 for key, color in pairs(colorRefs) do
     harness.assertEqual(lib.Colors[key], color, "upgrade reuses the same " .. key .. " colour object")
@@ -89,5 +105,12 @@ end
 for key, font in pairs(fontRefs) do
     harness.assertEqual(lib.Fonts[key], font, "upgrade reuses the same " .. key .. " font object")
 end
+
+local newPointR, newPointG, newPointB, newPointA = lib.Colors.point:GetRGBA()
+local wantR, wantG, wantB, wantA = realCreateColorFromHexString(CHANGED_POINT_HEX):GetRGBA()
+harness.assertEqual(newPointR, wantR, "upgrade applies the new minor's point red channel")
+harness.assertEqual(newPointG, wantG, "upgrade applies the new minor's point green channel")
+harness.assertEqual(newPointB, wantB, "upgrade applies the new minor's point blue channel")
+harness.assertEqual(newPointA, wantA, "upgrade applies the new minor's point alpha channel")
 
 harness.done()

@@ -63,24 +63,36 @@ local CreateColor = CreateColorFromHexString
 ---@field edgeHover colorRGBA
 
 -- Populated into the table, never assigned over it: a widget built by an
--- older minor holds a reference to the objects in here.
+-- older minor holds a reference to the objects in here. A minor upgrade
+-- must still update each object's RGBA in place, or a newer minor's
+-- palette never reaches a widget an older minor already built.
 local colors = lib.Colors
-colors.point = colors.point or CreateColor("FF45B7D1")
-colors.hover = colors.hover or CreateColor("FF4B5267")
+
+local function SetColor(key, hex)
+    local incoming = CreateColor(hex)
+    if colors[key] then
+        colors[key]:SetRGBA(incoming:GetRGBA())
+    else
+        colors[key] = incoming
+    end
+end
+
+SetColor("point", "FF45B7D1")
+SetColor("hover", "FF4B5267")
 -- The one warm token, and the suite's only red: a close affordance and a
 -- refused save both have to read as "not the rest of this window", while
 -- every other entry here is a surface, an edge or a shade of text. The
 -- value is BitForge_EUI's own refusal red, promoted rather than invented.
-colors.danger = colors.danger or CreateColor("FFFF4D4D")
-colors.bg = colors.bg or CreateColor("FF121212")
-colors.bgDisabled = colors.bgDisabled or CreateColor("7F121212")
-colors.surface = colors.surface or CreateColor("FF1E1E1F")
-colors.disabled = colors.disabled or CreateColor("FF181819")
-colors.text = colors.text or CreateColor("FF888888")
-colors.textHover = colors.textHover or CreateColor("FFFFFFFF")
-colors.textDisabled = colors.textDisabled or CreateColor("FF4A4A4B")
-colors.edge = colors.edge or CreateColor("FF000000")
-colors.edgeHover = colors.edgeHover or CreateColor("FF2A2A2B")
+SetColor("danger", "FFFF4D4D")
+SetColor("bg", "FF121212")
+SetColor("bgDisabled", "7F121212")
+SetColor("surface", "FF1E1E1F")
+SetColor("disabled", "FF181819")
+SetColor("text", "FF888888")
+SetColor("textHover", "FFFFFFFF")
+SetColor("textDisabled", "FF4A4A4B")
+SetColor("edge", "FF000000")
+SetColor("edgeHover", "FF2A2A2B")
 
 --- The size of `px` physical pixels in UI units, at UIParent's effective scale.
 --- Use it wherever a pixel-perfect value is needed (edgeSize, SetHeight, etc.).

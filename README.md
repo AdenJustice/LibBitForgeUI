@@ -7,15 +7,35 @@ and the widget factories built from both. LibStub major `LibBitForgeUI-1.0`.
 ## Embedding
 
 Vendor this repository as a submodule at `Libs/LibBitForgeUI` inside your
-addon, and list its files in your `.toc` (after your own copy of
-`LibStub.lua`):
+addon, and either point your `.toc` at `Libs\LibBitForgeUI\lib.xml`, or list
+every file in `lib.xml`'s own order directly in your `.toc` (after your own
+copy of `LibStub.lua`):
 
 ```
 Libs\LibBitForgeUI\LibBitForgeUI.lua
+Libs\LibBitForgeUI\Skin.lua
+Libs\LibBitForgeUI\Templates\Frame.lua
+Libs\LibBitForgeUI\Templates\Buttons.lua
+Libs\LibBitForgeUI\Templates\CloseButton.lua
+Libs\LibBitForgeUI\Templates\EditBox.lua
+Libs\LibBitForgeUI\Templates\Dropdown.lua
+Libs\LibBitForgeUI\Templates\Bar.lua
+Libs\LibBitForgeUI\Templates\Slider.lua
+Libs\LibBitForgeUI\Templates\TextWindow.lua
 ```
 
-or, if you prefer the XML route, `Libs\LibBitForgeUI\lib.xml` — see
-**Media paths** below for the one difference between the two.
+`LibBitForgeUI.lua` builds the palette, fonts and media path; `Skin.lua` is
+the primitive layer the widgets below it build on; the eight
+`Templates\*.lua` files are the widget factories themselves. Loading only
+`LibBitForgeUI.lua` gets you the palette and fonts with no skin primitives,
+no widgets and no bridge — see **Media paths** below for the one difference
+between the `.toc` route and the `lib.xml` route.
+
+Loading the library also creates sixteen global font objects named
+`BitForgeFont<Variant>` (`BitForgeFontNormal`, `BitForgeFontLargeOutline`,
+and so on). The `BitForgeFont` prefix is the original addon's name, kept
+because call sites across the suite consume those names as strings rather
+than as `lib.Fonts` table lookups.
 
 ## Media paths
 

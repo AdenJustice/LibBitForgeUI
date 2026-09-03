@@ -115,6 +115,8 @@ harness.assertEqual(noRegionsFrame.NineSlice.calls.SetAlpha[1], 0,
     "StripFrameTextures with no GetRegions still hides NineSlice")
 harness.assertEqual(noRegionsFrame.Border.calls.SetAlpha[1], 0,
     "StripFrameTextures with no GetRegions still hides Border")
+harness.assertEqual(noRegionsFrame.calls.GetRegions, nil,
+    "StripFrameTextures never calls GetRegions when the field reads nil")
 
 -- CreateBackdropUnderlay
 

@@ -1,15 +1,15 @@
 -- BitForge.UI.CreateDropdown -- the shared multi-select dropdown.
 --
 -- What is driven here is the one thing a view cannot: what the closed box
--- PAINTS. Every other widget in BitForge/APIs/UI/Templates got a greyed state
--- with its OnDisable/OnEnable hooks and this one did not, and the gap does not
+-- PAINTS. Every other widget in Templates/ got a greyed state with its
+-- OnDisable/OnEnable hooks and this one did not, and the gap does not
 -- read as a bug from the outside -- SetEnabled(false) really does stop the
 -- menu opening and the wheel turning, because Blizzard's OpenMenu and
 -- OnMouseWheel_Intrinsic both return early on IsEnabled. It only reads as a
 -- bug to the player, who is shown a live-looking box that silently does
 -- nothing. A view test asserting IsEnabled() == false passes either way, which
 -- is why the assertions below are here and against the real file, the way
--- test_core_ui_close_button.lua drives the close button's own glyph.
+-- test_close_button.lua drives the close button's own glyph.
 local harness = dofile("tests/harness.lua")
 
 harness.resetLibStub()
