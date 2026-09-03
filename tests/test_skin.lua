@@ -103,9 +103,18 @@ harness.assertEqual(stripFrame.Border.calls.SetAlpha[1], 0, "StripFrameTextures 
 -- Bg/BG were never assigned on this frame, so OPTIONAL_WIDGET_FIELDS reads
 -- them as nil and StripFrameTextures skips them without erroring.
 
--- StripFrameTextures on a frame with none of the optional pieces set, and no
--- GetRegions at all, still returns rather than erroring.
-skin.StripFrameTextures(harness.newFrame("Frame", "BareStripTestFrame"))
+-- StripFrameTextures with no GetRegions at all still strips the pieces it
+-- can find and takes the early return instead of walking regions that don't
+-- exist. GetRegions is in OPTIONAL_WIDGET_FIELDS precisely so this frame
+-- reads it as nil rather than the generic phantom method.
+local noRegionsFrame = harness.newFrame("Frame", "BareStripTestFrame")
+noRegionsFrame.NineSlice = harness.newFrame("Frame")
+noRegionsFrame.Border = harness.newFrame("Texture")
+skin.StripFrameTextures(noRegionsFrame)
+harness.assertEqual(noRegionsFrame.NineSlice.calls.SetAlpha[1], 0,
+    "StripFrameTextures with no GetRegions still hides NineSlice")
+harness.assertEqual(noRegionsFrame.Border.calls.SetAlpha[1], 0,
+    "StripFrameTextures with no GetRegions still hides Border")
 
 -- CreateBackdropUnderlay
 

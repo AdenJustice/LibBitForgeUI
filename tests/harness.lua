@@ -276,10 +276,13 @@ end
 -- NineSlice/Border/Bg/BG join the set for the same reason: Skin.lua's
 -- StripFrameTextures probes each the same way ("if frame.NineSlice then
 -- frame.NineSlice:SetAlpha(0) end") before a template has necessarily built
--- one.
+-- one. GetRegions is the same problem one level up -- StripFrameTextures
+-- feature-detects it with "not frameObject.GetRegions" before ever calling
+-- it, and the phantom method is truthy for any capitalized key, so that
+-- check would never see it as absent without landing here too.
 local OPTIONAL_WIDGET_FIELDS = {
     Icon = true, Accent = true, Lead = true, Link = true, Footnote = true,
-    NineSlice = true, Border = true, Bg = true, BG = true,
+    NineSlice = true, Border = true, Bg = true, BG = true, GetRegions = true,
 }
 
 --- A stand-in for a WoW frame or region.
