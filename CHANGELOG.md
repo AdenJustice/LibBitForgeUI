@@ -35,6 +35,13 @@ of it was implemented belongs in the commit.
   any later resize a factory performs. A caller asking for a smaller widget
   than the floor now gets the floor instead. `UI.CreateFrame` additionally
   puts the same floor under the user's drag-resize handle.
+- An icon set in `Media/`, reachable by name through `lib.GetMedia`:
+  `arrow_up`, `arrow_down`, `ban`, `checked`, `unchecked`, `coins`, `gear`,
+  `sliders`, `trash`, `xmark`, `square-xmark` and `square-xmark-outline`. Each
+  is a white 256×256 TGA, so a consumer tints it with `SetVertexColor` from a
+  palette token rather than shipping one file per colour. The four that
+  previously shipped as `.blp` — the arrows and the two check boxes — are now
+  TGA under the same media names, so nothing that reads them has to change.
 - `raised`, a fourth ground colour above `bg`, `surface` and `disabled` on the
   palette's elevation ladder — the plane an interactive control like the
   dropdown's closed box or the edit box now sits on, instead of the window's
