@@ -6,7 +6,7 @@ an embedder touches — a factory, a palette key, a font object, a media path,
 the skin bridge — and what embedding code has to change because of it. How any
 of it was implemented belongs in the commit.
 
-## [Unreleased]
+## [v12.1.0.1] — 2026-09-04
 
 ### Added
 
