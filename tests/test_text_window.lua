@@ -147,9 +147,9 @@ end
 -- double-defined offset this round also fixed).
 harness.assertEqual(resolveX(bare, bare.Body, "TOPLEFT"), resolveX(bare, bare.Body, "BOTTOMLEFT"),
     "the body's left edge agrees whether read from its top or its bottom anchor")
-harness.assertEqual(pointNamed(bare.Body, "BOTTOMLEFT")[5], 12,
+harness.assertEqual(pointNamed(bare.Body, "BOTTOMLEFT")[5], 16,
     "the body's bottom sits inside the frame, not past it")
-harness.assertEqual(pointNamed(bare.Body, "TOPRIGHT")[4], -12,
+harness.assertEqual(pointNamed(bare.Body, "TOPRIGHT")[4], -16,
     "the body's right edge is inset from the frame, not flush with it")
 
 -- One rendered line, in the UI units every height below is counted in.
@@ -182,7 +182,7 @@ local SHORT_FOOTNOTE = "a footnote"
 harness.stub.fontStringHeights[SHORT_FOOTNOTE] = LINE
 local footnoteOnly = UI.CreateTextWindow({ title = "Footnote only", footnote = SHORT_FOOTNOTE })
 local footnoteBottom = pointNamed(footnoteOnly.Footnote, "BOTTOMLEFT")[5]
-harness.assertEqual(footnoteBottom, 12, "the footnote sits inside the frame with no buttons present")
+harness.assertEqual(footnoteBottom, 16, "the footnote sits inside the frame with no buttons present")
 harness.assertEqual(edgeAbove(footnoteOnly, footnoteOnly.Body, "BOTTOM")
     > edgeAbove(footnoteOnly, footnoteOnly.Footnote, "TOP"), true,
     "the body's bottom edge sits above the footnote it shares the frame with")
@@ -204,7 +204,7 @@ local tall = UI.CreateTextWindow({
 })
 harness.assertEqual(tall.Footnote.calls.SetHeight, nil,
     "a wrapping footnote is no more pinned to one line's height than the lead is")
-harness.assertEqual(edgeAbove(tall, tall.Footnote, "TOP"), 12 + 24 + 12 + 4 * LINE,
+harness.assertEqual(edgeAbove(tall, tall.Footnote, "TOP"), 16 + 24 + 16 + 4 * LINE,
     "the footnote's top rises with the text it wraps, clear of the button row")
 harness.assertEqual(edgeAbove(tall, tall.Body, "BOTTOM")
     >= edgeAbove(tall, tall.Footnote, "TOP"), true,
@@ -262,5 +262,30 @@ local before = countRegistrations("BitForgeTestTextWindow")
 UI.CreateTextWindow({ title = "Report an Item", name = "BitForgeTestTextWindow" })
 harness.assertEqual(countRegistrations("BitForgeTestTextWindow"), before,
     "a second window sharing a name does not double-register with UISpecialFrames")
+
+-- The floor: a default-sized window already clears it, and a squashed one is
+-- grown back up to it on both axes.
+local floorWindow = UI.CreateTextWindow({ title = "Floors" })
+harness.assertEqual(floorWindow:GetWidth(), 600, "the window's default width grew with its padding")
+harness.assertEqual(floorWindow:GetHeight(), 460, "and so did its height")
+
+-- SetSize is modelled by the harness, so calling it directly is the same
+-- geometry change a real SetSize-driven resize would produce -- see
+-- harness.lua's MODELLED_STATE.SetSize.
+floorWindow:SetSize(10, 10)
+UI.ApplyMinimum(floorWindow, "TextWindow")
+harness.assertEqual(floorWindow:GetWidth(), 320, "a squashed window is grown to its floor")
+harness.assertEqual(floorWindow:GetHeight(), 240, "on both axes")
+
+-- And the drag path stops at the SAME floor. UI.CreateFrame already called
+-- SetResizeBounds with Minimums.Frame -- 160x96, the floor this widget
+-- inherits rather than the one it has -- so the last call wins and it has to
+-- be this window's own, or a dragged corner takes it half the size a
+-- programmatic resize can reach.
+local bounds = floorWindow.calls.SetResizeBounds
+harness.assertEqual(bounds and bounds[1], lib.Minimums.TextWindow.minWidth,
+    "the drag floor is the window's own, not the plain frame's it inherits")
+harness.assertEqual(bounds and bounds[2], lib.Minimums.TextWindow.minHeight,
+    "on both axes")
 
 harness.report()

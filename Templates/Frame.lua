@@ -9,6 +9,7 @@ if not lib then return end
 
 local UI = lib
 local colors = UI.Colors
+local metrics = UI.Metrics
 
 local BACKDROP_CONFIG = {
     bgFile = "Interface/Buttons/WHITE8X8",
@@ -36,7 +37,7 @@ function FrameMixin:OnLoad(hasTitle)
     if hasTitle then
         local titleBar = self:CreateTexture(nil, "BORDER")
         titleBar:SetTexture("Interface/Buttons/WHITE8X8")
-        PixelUtil.SetHeight(titleBar, 32)
+        PixelUtil.SetHeight(titleBar, metrics.control)
         titleBar:SetVertexColor(colors.point:GetRGBA())
         titleBar:SetPoint("TOPLEFT")
         titleBar:SetPoint("TOPRIGHT")
@@ -45,12 +46,20 @@ function FrameMixin:OnLoad(hasTitle)
         local title = self:CreateFontString(nil, "OVERLAY", "BitForgeFontNormalOutlineShadow")
         title:SetJustifyH("CENTER")
         title:SetJustifyV("MIDDLE")
-        PixelUtil.SetHeight(title, 32)
+        PixelUtil.SetHeight(title, metrics.control)
         title:SetTextColor(1, 1, 1, 1)
         PixelUtil.SetPoint(title, "TOPLEFT", self, "TOPLEFT", 12, 0)
         PixelUtil.SetPoint(title, "TOPRIGHT", self, "TOPRIGHT", -12, 0)
         self.Title = title
     end
+
+    UI.ApplyMinimum(self, "Frame")
+    -- Puts the same floor under the user-drag path. Layered on top of
+    -- ApplyMinimum rather than replacing it: whether SetResizeBounds also
+    -- clamps a programmatic SetSize is not established from the client
+    -- source, so it is not relied on for that.
+    local minimum = UI.Minimums.Frame
+    self:SetResizeBounds(minimum.minWidth, minimum.minHeight)
 end
 
 --- Errors if the frame was created without a title bar.

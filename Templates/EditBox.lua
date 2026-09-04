@@ -5,6 +5,7 @@ if not lib then return end
 local UI = lib
 ---@type BitForge.UI.Colors
 local colors = UI.Colors
+local metrics = UI.Metrics
 
 local PP = UI.GetPixel()
 local BACKDROP_CONFIG = {
@@ -18,7 +19,7 @@ local BACKDROP_CONFIG = {
 
 local function ApplyBackdrop(frame)
     frame:SetBackdrop(BACKDROP_CONFIG)
-    frame:SetBackdropColor(colors.bg:GetRGBA())
+    frame:SetBackdropColor(colors.raised:GetRGBA())
     frame:SetBackdropBorderColor(colors.edge:GetRGBA())
     frame:SetTextColor(colors.text:GetRGB())
     frame:SetFontObject(UI.Fonts.NormalShadow)
@@ -39,9 +40,9 @@ local function OnEscapePressed(self) self:ClearFocus() end
 local EditBoxMixin = {}
 
 function EditBoxMixin:OnLoad()
-    self:SetSize(200, 32)
+    self:SetSize(metrics.defaultWidth, metrics.control)
     self:SetAutoFocus(false)
-    self:SetTextInsets(8, 8, 0, 0)
+    self:SetTextInsets(metrics.md, metrics.md, 0, 0)
 
     ApplyBackdrop(self)
 
@@ -50,6 +51,8 @@ function EditBoxMixin:OnLoad()
     self:HookScript("OnEnterPressed", OnEnterPressed)
     self:HookScript("OnEscapePressed", OnEscapePressed)
     self:SetScript("OnTextChanged", self.OnTextChanged)
+
+    UI.ApplyMinimum(self, "EditBox")
 end
 
 --- Override this in calling code to respond to text changes.
@@ -61,14 +64,14 @@ UI.Mixins.EditBox = EditBoxMixin
 local ScrollEditBoxMixin = {}
 
 function ScrollEditBoxMixin:OnLoad()
-    self:SetSize(200, 120)
+    self:SetSize(metrics.defaultWidth, metrics.scrollHeight)
 
     -- ScrollingEditBoxTemplate creates self.ScrollBox and self.ScrollBox.EditBox.
     local editBox = self.ScrollBox.EditBox
     Mixin(editBox, BackdropTemplateMixin)
     BackdropTemplateMixin.OnBackdropLoaded(editBox)
     ApplyBackdrop(editBox)
-    self:SetTextInsets(8, 8, 4, 4)
+    self:SetTextInsets(metrics.md, metrics.md, metrics.sm, metrics.sm)
 
     self:RegisterCallback("OnFocusGained", function(_, eb)
         eb:SetBackdropBorderColor(colors.point:GetRGBA())
@@ -76,6 +79,8 @@ function ScrollEditBoxMixin:OnLoad()
     self:RegisterCallback("OnFocusLost", function(_, eb)
         eb:SetBackdropBorderColor(colors.edge:GetRGBA())
     end)
+
+    UI.ApplyMinimum(self, "ScrollEditBox")
 end
 
 function ScrollEditBoxMixin:OnShow()

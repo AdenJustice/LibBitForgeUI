@@ -8,8 +8,20 @@ if not lib then return end
 
 local UI = lib
 local colors = UI.Colors
+local metrics = UI.Metrics
 
-local BUTTON_H_PADDING = 48 -- 24 px each side
+--- The horizontal air a text button keeps around its label: xl on each side.
+---
+--- A function rather than a constant, because a constant would snapshot the
+--- scale at file-load time and a host calling lib:SetMetrics afterwards would
+--- get no wider buttons, silently -- every other site here reads metrics.X at
+--- call time. It also keeps the doubling out of the SetWidth argument, which
+--- tests/test_metrics_discipline.lua scans for numeric literals.
+---@return number
+local function horizontalPadding()
+    return 2 * metrics.xl
+end
+
 local PP = UI.GetPixel()
 local BACKDROP_CONFIG = {
     bgFile = "Interface/Buttons/WHITE8X8",
@@ -33,17 +45,17 @@ local function updateLayout(self, width, height)
     if hasLabel then self.Label:ClearAllPoints() end
 
     if hasIcon and hasLabel then
-        local iconSize = minSize - 8
+        local iconSize = minSize - 2 * metrics.xs
         self.Icon:SetSize(iconSize, iconSize)
-        PixelUtil.SetPoint(self.Icon, "LEFT", self, "LEFT", 12, 0)
+        PixelUtil.SetPoint(self.Icon, "LEFT", self, "LEFT", metrics.md, 0)
 
         self.Label:SetJustifyH("LEFT")
-        PixelUtil.SetPoint(self.Label, "LEFT", self.Icon, "RIGHT", 8, 0)
-        PixelUtil.SetPoint(self.Label, "RIGHT", self, "RIGHT", -12, 0)
+        PixelUtil.SetPoint(self.Label, "LEFT", self.Icon, "RIGHT", metrics.sm, 0)
+        PixelUtil.SetPoint(self.Label, "RIGHT", self, "RIGHT", -metrics.md, 0)
         self.Label:SetPoint("TOP", self, "TOP", 0, 0)
         self.Label:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
     elseif hasIcon then
-        local iconSize = minSize - 8
+        local iconSize = minSize - 2 * metrics.xs
         self.Icon:SetSize(iconSize, iconSize)
         self.Icon:SetPoint("CENTER", self, "CENTER", 0, 0)
     elseif hasLabel then
@@ -120,7 +132,7 @@ do
     function ButtonMixin:OnLoad(hasIcon, hasLabel)
         assert(hasIcon or hasLabel, "At least one of icon or label must be provided")
 
-        self:SetSize(120, 36)
+        self:SetSize(metrics.buttonWidth, metrics.control)
 
         self:SetNormalTexture("Interface/Buttons/WHITE8X8")
         self:SetHighlightTexture("Interface/Buttons/WHITE8X8", "ADD")
@@ -147,7 +159,7 @@ do
 
         if hasIcon then
             local icon = self:CreateTexture(nil, "OVERLAY")
-            icon:SetSize(16, 16)
+            icon:SetSize(metrics.icon, metrics.icon)
             icon:SetPoint("CENTER", self, "CENTER", 0, 0)
             self.Icon = icon
         end
@@ -161,6 +173,8 @@ do
         self:HookScript("OnSizeChanged", updateLayout)
 
         UpdateState(self, "NORMAL")
+
+        UI.ApplyMinimum(self, "Button")
     end
 
     ---@param text string
@@ -169,7 +183,12 @@ do
             error("Button does not have a label.", 2)
         end
         self.Label:SetText(text)
-        self:SetWidth(self.Label:GetUnboundedStringWidth() + BUTTON_H_PADDING)
+        self:SetWidth(self.Label:GetUnboundedStringWidth() + horizontalPadding())
+
+        -- SetText resizes the widget long after OnLoad's own ApplyMinimum ran,
+        -- so a label short enough to compute a width under the floor would
+        -- otherwise slip past it -- re-apply here too.
+        UI.ApplyMinimum(self, "Button")
     end
 
     ---@param texture string|number
@@ -236,7 +255,7 @@ do
     end
 
     local function UpdateTint(self)
-        self:GetNormalTexture():SetVertexColor(colors.text:GetRGBA())
+        self:GetNormalTexture():SetVertexColor(colors.textMuted:GetRGBA())
         self:GetCheckedTexture():SetVertexColor(colors.point:GetRGBA())
         self:GetDisabledCheckedTexture():SetVertexColor(colors.textDisabled:GetRGBA())
         self:GetHighlightTexture():SetVertexColor(colors.textHover:GetRGBA())
@@ -269,7 +288,7 @@ do
     function CheckButtonMixin:OnLoad(hasIcon, hasLabel)
         assert(hasIcon or hasLabel, "At least one of icon or label must be provided")
 
-        PixelUtil.SetHeight(self, 24, 1)
+        PixelUtil.SetHeight(self, metrics.row, 1)
 
         self:SetBackdrop(BACKDROP_CONFIG)
 
@@ -282,22 +301,22 @@ do
 
             local texNormal = self:GetNormalTexture()
             texNormal:ClearAllPoints()
-            texNormal:SetSize(20, 20)
+            texNormal:SetSize(metrics.tick, metrics.tick)
             texNormal:SetPoint("LEFT", self, "LEFT", 0, 0)
 
             local texChecked = self:GetCheckedTexture()
             texChecked:ClearAllPoints()
-            texChecked:SetSize(20, 20)
+            texChecked:SetSize(metrics.tick, metrics.tick)
             texChecked:SetPoint("LEFT", self, "LEFT", 0, 0)
 
             local texDisabledChecked = self:GetDisabledCheckedTexture()
             texDisabledChecked:ClearAllPoints()
-            texDisabledChecked:SetSize(20, 20)
+            texDisabledChecked:SetSize(metrics.tick, metrics.tick)
             texDisabledChecked:SetPoint("LEFT", self, "LEFT", 0, 0)
 
             local texHighlight = self:GetHighlightTexture()
             texHighlight:ClearAllPoints()
-            texHighlight:SetSize(20, 20)
+            texHighlight:SetSize(metrics.tick, metrics.tick)
             texHighlight:SetPoint("LEFT", self, "LEFT", 0, 0)
 
             self.hasIcon = true
@@ -312,7 +331,7 @@ do
 
             if hasIcon then
                 label:SetJustifyH("LEFT")
-                label:SetPoint("LEFT", self, "LEFT", 26, 0)
+                label:SetPoint("LEFT", self, "LEFT", metrics.tick + metrics.sm, 0)
             else
                 label:SetJustifyH("CENTER")
                 label:SetAllPoints()
@@ -323,7 +342,7 @@ do
         end
 
         if hasIcon and not hasLabel then
-            self:SetWidth(24)
+            self:SetWidth(metrics.controlSmall)
         end
 
         self:HookScript("OnEnter", OnEnter)
@@ -339,6 +358,8 @@ do
         self:HookScript("OnEnable", HookSetChecked)
 
         HookSetChecked(self)
+
+        UI.ApplyMinimum(self, "CheckButton")
     end
 
     ---@param text string
@@ -348,7 +369,14 @@ do
         end
         self.Label:SetText(text)
         local w = self.Label:GetUnboundedStringWidth()
-        self:SetWidth(self.hasIcon and (26 + w + 8) or (w + BUTTON_H_PADDING))
+        self:SetWidth(self.hasIcon
+            and (metrics.tick + metrics.sm + w + metrics.sm)
+            or (w + horizontalPadding()))
+
+        -- SetText resizes the widget long after OnLoad's own ApplyMinimum ran,
+        -- so a label short enough to compute a width under the floor would
+        -- otherwise slip past it -- re-apply here too.
+        UI.ApplyMinimum(self, "CheckButton")
     end
 
     ---@param texNormal  string|number

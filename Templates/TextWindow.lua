@@ -10,14 +10,7 @@ if not lib then return end
 local UI = lib
 ---@type BitForge.UI.Colors
 local colors = UI.Colors
-
-local DEFAULT_WIDTH = 560
-local DEFAULT_HEIGHT = 440
-local TITLE_HEIGHT = 32
-local PADDING = 12
-local LINK_HEIGHT = 26
-local BUTTON_HEIGHT = 24
-local BUTTON_WIDTH = 120
+local metrics = UI.Metrics
 
 ---@class BitForge.TextWindowMixin : BitForge.FrameMixin
 ---@field Body      BitForge.ScrollEditBoxMixin
@@ -73,8 +66,8 @@ UI.Mixins.TextWindow = TextWindowMixin
 ---@field lead          string?   one line above the text box
 ---@field link          string?   a selectable single-line URL under the lead
 ---@field footnote      string?   one line under the text box
----@field width         number?   defaults to 560
----@field height        number?   defaults to 440
+---@field width         number?   defaults to metrics.windowWidth
+---@field height        number?   defaults to metrics.windowHeight
 ---@field name          string?   global frame name, so UISpecialFrames closes it on Escape
 ---@field buttons       table?    array of { text = string, onClick = fun(window) }
 ---@field selectOnOpen  boolean?  select the body's text on Open(); defaults to false
@@ -92,7 +85,7 @@ function UI.CreateTextWindow(options)
     Mixin(frame, TextWindowMixin)
     frame.selectOnOpen = options.selectOnOpen and true or false
 
-    frame:SetSize(options.width or DEFAULT_WIDTH, options.height or DEFAULT_HEIGHT)
+    frame:SetSize(options.width or metrics.windowWidth, options.height or metrics.windowHeight)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -125,10 +118,10 @@ function UI.CreateTextWindow(options)
     end
 
     -- anchorX carries the horizontal inset for whichever point `anchor` is:
-    -- PADDING off the frame itself, or 0 once anchored to a lead/link that is
-    -- already inset by PADDING -- reusing PADDING there would double it.
+    -- metrics.lg off the frame itself, or 0 once anchored to a lead/link that is
+    -- already inset by metrics.lg -- reusing metrics.lg there would double it.
     local anchor, anchorPoint, anchorX, anchorY =
-        frame, "TOPLEFT", PADDING, -(TITLE_HEIGHT + PADDING)
+        frame, "TOPLEFT", metrics.lg, -(metrics.control + metrics.lg)
 
     if options.lead then
         local lead = frame:CreateFontString(nil, "OVERLAY", "BitForgeFontNormalShadow")
@@ -140,50 +133,57 @@ function UI.CreateTextWindow(options)
         lead:SetTextColor(colors.text:GetRGB())
         lead:SetText(options.lead)
         PixelUtil.SetPoint(lead, "TOPLEFT", anchor, anchorPoint, anchorX, anchorY)
-        PixelUtil.SetPoint(lead, "TOPRIGHT", frame, "TOPRIGHT", -PADDING, anchorY)
+        PixelUtil.SetPoint(lead, "TOPRIGHT", frame, "TOPRIGHT", -metrics.lg, anchorY)
         frame.Lead = lead
-        anchor, anchorPoint, anchorX, anchorY = lead, "BOTTOMLEFT", 0, -4
+        anchor, anchorPoint, anchorX, anchorY = lead, "BOTTOMLEFT", 0, -metrics.xs
     end
 
     if options.link then
         local link = UI.CreateEditBox(frame)
-        link:SetHeight(LINK_HEIGHT)
+        link:SetHeight(metrics.row)
+        -- CreateEditBox floored the box on its way out and the SetHeight above
+        -- overwrote that answer, so the floor is re-applied rather than assumed
+        -- to have survived a later resize.
+        UI.ApplyMinimum(link, "EditBox")
         link:SetText(options.link)
         link:SetCursorPosition(0)
         PixelUtil.SetPoint(link, "TOPLEFT", anchor, anchorPoint, anchorX, anchorY)
-        PixelUtil.SetPoint(link, "TOPRIGHT", frame, "TOPRIGHT", -PADDING, anchorY)
+        PixelUtil.SetPoint(link, "TOPRIGHT", frame, "TOPRIGHT", -metrics.lg, anchorY)
         frame.Link = link
-        anchor, anchorPoint, anchorX, anchorY = link, "BOTTOMLEFT", 0, -PADDING
+        anchor, anchorPoint, anchorX, anchorY = link, "BOTTOMLEFT", 0, -metrics.lg
     end
 
     frame.Buttons = {}
     -- A BOTTOM* anchor's y grows inward, toward the frame's centre, so the
-    -- no-buttons case starts at the same positive PADDING the buttons branch
+    -- no-buttons case starts at the same positive metrics.lg the buttons branch
     -- below computes for itself -- a negative value here draws outside the
     -- frame.
-    local bottom = PADDING
+    local bottom = metrics.lg
     if options.buttons and #options.buttons > 0 then
         local previous
         for _, spec in ipairs(options.buttons) do
             local button = UI.CreateButton(nil, frame, nil, spec.text)
-            button:SetSize(BUTTON_WIDTH, BUTTON_HEIGHT)
+            button:SetSize(metrics.buttonWidth, metrics.controlSmall)
+            -- Re-applied for the reason the link above is: CreateButton's own
+            -- floor ran before this SetSize replaced what it measured.
+            UI.ApplyMinimum(button, "Button")
             button:SetScript("OnClick", function() spec.onClick(frame) end)
             if previous then
-                PixelUtil.SetPoint(button, "RIGHT", previous, "LEFT", -PADDING, 0)
+                PixelUtil.SetPoint(button, "RIGHT", previous, "LEFT", -metrics.lg, 0)
             else
                 PixelUtil.SetPoint(button, "BOTTOMRIGHT", frame, "BOTTOMRIGHT",
-                    -PADDING, PADDING)
+                    -metrics.lg, metrics.lg)
             end
             previous = button
             frame.Buttons[#frame.Buttons + 1] = button
         end
-        bottom = PADDING + BUTTON_HEIGHT + PADDING
+        bottom = metrics.lg + metrics.controlSmall + metrics.lg
     end
 
     -- The mirror of the top chain, and bottomX carries the same horizontal
-    -- inset rule: PADDING off the frame itself, 0 once anchored to a footnote
-    -- already inset by PADDING.
-    local bottomAnchor, bottomPoint, bottomX, bottomY = frame, "BOTTOMLEFT", PADDING, bottom
+    -- inset rule: metrics.lg off the frame itself, 0 once anchored to a footnote
+    -- already inset by metrics.lg.
+    local bottomAnchor, bottomPoint, bottomX, bottomY = frame, "BOTTOMLEFT", metrics.lg, bottom
 
     if options.footnote then
         local footnote = frame:CreateFontString(nil, "OVERLAY", "BitForgeFontNormalShadow")
@@ -196,19 +196,30 @@ function UI.CreateTextWindow(options)
         -- the body up. Every privacy sentence this window carries runs to two
         -- lines or more.
         footnote:SetWordWrap(true)
-        footnote:SetTextColor(colors.text:GetRGB())
+        footnote:SetTextColor(colors.textMuted:GetRGB())
         footnote:SetText(options.footnote)
-        PixelUtil.SetPoint(footnote, "BOTTOMLEFT", frame, "BOTTOMLEFT", PADDING, bottom)
-        PixelUtil.SetPoint(footnote, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, bottom)
+        PixelUtil.SetPoint(footnote, "BOTTOMLEFT", frame, "BOTTOMLEFT", metrics.lg, bottom)
+        PixelUtil.SetPoint(footnote, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -metrics.lg, bottom)
         frame.Footnote = footnote
-        bottomAnchor, bottomPoint, bottomX, bottomY = footnote, "TOPLEFT", 0, PADDING
+        bottomAnchor, bottomPoint, bottomX, bottomY = footnote, "TOPLEFT", 0, metrics.lg
     end
 
     local body = UI.CreateScrollEditBox(frame)
     PixelUtil.SetPoint(body, "TOPLEFT", anchor, anchorPoint, anchorX, anchorY)
-    PixelUtil.SetPoint(body, "TOPRIGHT", frame, "TOPRIGHT", -PADDING, anchorY)
+    PixelUtil.SetPoint(body, "TOPRIGHT", frame, "TOPRIGHT", -metrics.lg, anchorY)
     PixelUtil.SetPoint(body, "BOTTOMLEFT", bottomAnchor, bottomPoint, bottomX, bottomY)
     frame.Body = body
+
+    -- Last, so a caller's own options.width/options.height override above is
+    -- what gets floored -- a 120-wide request still lands on the widget's own
+    -- minimum, not the metric default.
+    UI.ApplyMinimum(frame, "TextWindow")
+    -- And the same floor under the user-drag path. UI.CreateFrame already set
+    -- resize bounds from Minimums.Frame -- 160x96, this widget's inherited
+    -- floor rather than its own -- so a dragged corner would otherwise stop
+    -- half the size a programmatic one does.
+    local minimum = UI.Minimums.TextWindow
+    frame:SetResizeBounds(minimum.minWidth, minimum.minHeight)
 
     return frame
 end

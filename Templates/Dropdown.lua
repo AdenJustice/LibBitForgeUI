@@ -8,12 +8,9 @@ if not lib then return end
 
 local UI = lib
 local colors = UI.Colors
+local metrics = UI.Metrics
 
 local DropdownButtonMixin = DropdownButtonMixin
-
-local DROPDOWN_HEIGHT = 32
-local ARROW_SIZE = 14
-local H_PADDING = 10
 
 local BORDER_BACKDROP = {
     edgeFile = "Interface/Buttons/WHITE8X8",
@@ -36,6 +33,10 @@ local function UpdateState(dropdown, state)
     end
 
     dropdown:SetBackdropBorderColor(borderColor:GetRGBA())
+    -- Paints two different things: the label when a selection is set, and the
+    -- placeholder when it is not. The placeholder would want textMuted, but
+    -- splitting them needs the dropdown to know whether it holds a selection
+    -- -- a widget change, not a colour one -- so this stays on text.
     dropdown.Label:SetTextColor((disabled and colors.textDisabled or colors.text):GetRGB())
     -- The arrow wears no tint of its own at rest, so reviving restores the
     -- texture's own white rather than painting the label's grey onto a glyph
@@ -59,30 +60,36 @@ function DropdownMixin:OnLoad()
 
     DropdownButtonMixin.OnLoad_Intrinsic(self)
 
-    self:SetSize(160, DROPDOWN_HEIGHT)
+    self:SetSize(metrics.dropdownWidth, metrics.control)
     self:EnableMouseWheel(true) -- OnLoad_Intrinsic disables it; re-enable for rotation
 
     -- Colours come later, from UpdateState, once the regions it paints exist.
     self:SetBackdrop(BORDER_BACKDROP)
 
+    -- The ground is a texture rather than the backdrop's own bgFile because
+    -- Skin.lua's host-skin bridge strips it by name (frameObject.Bg) when a
+    -- host takes the surface over -- a bgFile has no name a host can find.
+    -- On the raised plane rather than the window's own bg, which is the
+    -- indistinguishability `raised` exists to fix.
     local bg = self:CreateTexture(nil, "BACKGROUND")
     bg:SetTexture("Interface/Buttons/WHITE8X8")
     bg:SetAllPoints()
-    bg:SetVertexColor(colors.bg.r, colors.bg.g, colors.bg.b, colors.bg.a)
+    bg:SetVertexColor(colors.raised.r, colors.raised.g, colors.raised.b, colors.raised.a)
     self.Bg = bg
 
     local label = self:CreateFontString(nil, "OVERLAY", "BitForgeFontNormalOutline")
     label:SetJustifyH("LEFT")
     label:SetJustifyV("MIDDLE")
-    label:SetPoint("LEFT", self, "LEFT", H_PADDING, 0)
-    label:SetPoint("RIGHT", self, "RIGHT", -(ARROW_SIZE + H_PADDING + 6), 0)
+    label:SetPoint("LEFT", self, "LEFT", metrics.md, 0)
+    label:SetPoint("RIGHT", self, "RIGHT",
+        -(metrics.arrow + metrics.md + metrics.xs), 0)
     label:SetPoint("TOP", self, "TOP", 0, 0)
     label:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
     self.Label = label
 
     local arrow = self:CreateTexture(nil, "OVERLAY")
-    arrow:SetSize(ARROW_SIZE, ARROW_SIZE)
-    arrow:SetPoint("RIGHT", self, "RIGHT", -H_PADDING, 0)
+    arrow:SetSize(metrics.arrow, metrics.arrow)
+    arrow:SetPoint("RIGHT", self, "RIGHT", -metrics.md, 0)
     arrow:SetTexture(UI.GetMedia("arrow_down"))
     self.Arrow = arrow
 
@@ -111,6 +118,8 @@ function DropdownMixin:OnLoad()
     self:HookScript("OnEnable", function(f) UpdateState(f, "NORMAL") end)
 
     UpdateState(self, "NORMAL")
+
+    UI.ApplyMinimum(self, "Dropdown")
 end
 
 --- Called by DropdownButtonMixin when the selection changes; the label then

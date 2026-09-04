@@ -119,4 +119,10 @@ harness.assertDeepEqual({ trackColor[1], trackColor[2], trackColor[3], trackColo
     { 0.9, 0.8, 0.7, 0.6 },
     "loose numbers included")
 
+local squashed = UI.CreateBar(harness.newFrame("Frame"))
+squashed:SetSize(5, 1)
+UI.ApplyMinimum(squashed, "Bar")
+harness.assertEqual(squashed:GetWidth(), 40, "a squashed bar is grown to its floor")
+harness.assertEqual(squashed:GetHeight(), 4, "on both axes")
+
 harness.report()

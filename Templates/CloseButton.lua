@@ -10,10 +10,10 @@ if not lib then return end
 local UI = lib
 ---@type BitForge.UI.Colors
 local colors = UI.Colors
+local metrics = UI.Metrics
 local skin = UI.Skin
 
 local GLYPH_TEXTURE = "Interface/Buttons/WHITE8X8"
-local DEFAULT_SIZE = 24
 
 -- Blizzard's UIPanelCloseButtonNoScripts carries frameLevel="510", and the
 -- windows this replaces it in are why: a close button left at its parent's
@@ -52,10 +52,10 @@ end
 
 ---@param edge number  The button's shorter side, in UI units.
 local function LayoutGlyph(self, edge)
-    local reach = edge * GLYPH_REACH_RATIO / 2
+    local side = edge * GLYPH_REACH_RATIO
     local glyph = self.Glyph[1]
 
-    glyph:SetSize(reach * 2, reach * 2)
+    glyph:SetSize(side, side)
     glyph:SetPoint("CENTER", self, "CENTER", 0, 0)
 end
 
@@ -86,9 +86,9 @@ do
         LayoutGlyph(self, min(width, height))
     end
 
-    ---@param size number?  Edge length in UI units; DEFAULT_SIZE unless given.
+    ---@param size number?  Edge length in UI units; metrics.controlSmall unless given.
     function CloseButtonMixin:OnLoad(size)
-        local edge = size or DEFAULT_SIZE
+        local edge = size or metrics.controlSmall
 
         self:SetFrameLevel(FRAME_LEVEL)
 
@@ -109,7 +109,12 @@ do
         self:HookScript("OnSizeChanged", OnSizeChanged)
 
         PixelUtil.SetSize(self, edge, edge)
-        LayoutGlyph(self, edge)
+        UI.ApplyMinimum(self, "CloseButton")
+        -- Not `edge`: the floor above, and PixelUtil's own pixel snapping,
+        -- can both leave the button's real side different from what was
+        -- requested, and the glyph has to scale off what the button
+        -- actually got -- the same reason OnSizeChanged reads it this way.
+        LayoutGlyph(self, min(self:GetWidth(), self:GetHeight()))
         PaintGlyph(self, "NORMAL")
     end
 end

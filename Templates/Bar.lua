@@ -9,11 +9,10 @@ if not lib then return end
 local UI = lib
 ---@type BitForge.UI.Colors
 local colors = UI.Colors
+local metrics = UI.Metrics
 local skin = UI.Skin
 
 local BAR_TEXTURE = "Interface/Buttons/WHITE8X8"
-local DEFAULT_WIDTH = 200
-local DEFAULT_HEIGHT = 8
 
 -- A native StatusBar rather than a pair of hand-resized textures, because the
 -- widget already owns the two things a hand-rolled bar has to re-derive on
@@ -34,7 +33,7 @@ local DEFAULT_HEIGHT = 8
 local BarMixin = {}
 
 function BarMixin:OnLoad()
-    PixelUtil.SetSize(self, DEFAULT_WIDTH, DEFAULT_HEIGHT)
+    PixelUtil.SetSize(self, metrics.defaultWidth, metrics.sm)
     self:SetOrientation("HORIZONTAL")
 
     -- The unfilled remainder. Full width of the frame and behind the fill, so
@@ -51,6 +50,8 @@ function BarMixin:OnLoad()
 
     self:SetMinMaxValues(0, 1)
     self:SetValue(0)
+
+    UI.ApplyMinimum(self, "Bar")
 end
 
 --- Colour the filled portion, from a ColorMixin or loose r, g, b[, a] numbers:

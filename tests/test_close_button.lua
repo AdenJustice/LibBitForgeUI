@@ -155,4 +155,21 @@ harness.assertEqual(wideGlyph < 24, true, "the X sits inside its button")
 button.scripts.OnSizeChanged(button, 16, 16)
 harness.assertEqual(glyphSize(button), smallGlyph, "a later resize relays the glyph out")
 
+-- 16 is the floor, so 15 is not a smaller button -- it is 16.
+local clamped = UI.CreateCloseButton(harness.newFrame("Frame"), 15)
+harness.assertEqual(clamped:GetWidth(), 16, "a below-floor close button is grown to 16")
+harness.assertEqual(clamped:GetHeight(), 16, "on both axes")
+
+-- Measuring only the button lets the glyph drift from it silently -- the
+-- assertion above passed even while the glyph was still built from the
+-- requested 15. The ratio is read back from an unclamped button rather than
+-- hard-coded, so this keeps working if GLYPH_REACH_RATIO ever changes. It comes
+-- from `small`, which nothing ever resized: the 24 button was driven through
+-- OnSizeChanged above, and reading its width back agrees with wideGlyph only
+-- for as long as the harness leaves a script-driven resize unmodelled -- an
+-- assertion resting on something the harness does NOT do.
+local reachRatio = smallGlyph / small:GetWidth()
+harness.assertEqual(glyphSize(clamped), clamped:GetWidth() * reachRatio,
+    "the glyph scales off the clamped button's real side, not the size that was requested")
+
 harness.report()

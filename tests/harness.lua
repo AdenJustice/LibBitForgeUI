@@ -89,6 +89,23 @@ end
 
 local frameMeta = {}
 
+--- The rectangle a size setter writes into: the frame's own if a fixture or an
+--- earlier setter gave it one, or a fresh zero-area rectangle at the origin.
+--- Every edge is present from the start, so a widget that sizes one axis still
+--- answers 0 for the other -- what the client reports for an axis nothing has
+--- sized -- rather than raising on a nil edge.
+---@param frame table  a harness.newFrame() stub
+---@return table  frame.geometry, with all four edges set
+local function sizeableGeometry(frame)
+    local geometry = frame.geometry or {}
+    geometry.left   = geometry.left or 0
+    geometry.bottom = geometry.bottom or 0
+    geometry.right  = geometry.right or geometry.left
+    geometry.top    = geometry.top or geometry.bottom
+    frame.geometry = geometry
+    return geometry
+end
+
 -- The frame state a widget factory branches on, modelled rather than merely
 -- recorded. A control asking `if frame:IsShown()` before deciding whether to
 -- open or close is a shape this suite's windows take, and a stub answering a
@@ -165,13 +182,68 @@ local MODELLED_STATE = {
     -- Every frame answers a number here, measured or not: pixel-perfect
     -- sizing divides by UIParent's effective scale, and a widget sizing a
     -- stroke from the result would be multiplying the recorder's fresh stub
-    -- instead. An unmeasured frame answers the client's own default rather
-    -- than a contrived 1, so a test reads the pixel arithmetic the game
-    -- would run. A frame given geometry answers what the fixture set, exactly
-    -- as GEOMETRY_GETTERS does.
+    -- instead. A frame answers whatever scale a fixture put in its geometry,
+    -- and the client's own default otherwise, so a test reads the pixel
+    -- arithmetic the game would run rather than a contrived 1.
+    --
+    -- The split is on the `scale` key alone, never on "this frame has
+    -- geometry": the size setters below give a frame a rectangle while saying
+    -- nothing about its scale, and the client's SetSize does not move
+    -- effective scale either. Reading geometry's mere existence as "a fixture
+    -- measured this" made a frame answer UI_UNIT_FACTOR before a SetSize and
+    -- 1 after one -- a number the client never changes, changed by a call
+    -- that cannot change it.
     GetEffectiveScale = function(frame)
         local geometry = frame.geometry
-        return geometry and (geometry.scale or 1) or UI_UNIT_FACTOR
+        return geometry and geometry.scale or UI_UNIT_FACTOR
+    end,
+    -- The real client measures an unsized frame at 0 x 0, not "whatever the
+    -- generic recorder hands back" -- ApplyMinimum can read these on a frame
+    -- nothing has sized yet (FrameMixin:OnLoad sizes nothing at all, and
+    -- CheckButtonMixin:OnLoad sizes its height and only sometimes its width),
+    -- and a fresh recording stub there is a table, not a number. Re-derives
+    -- from frame.geometry on every call rather than a flat `return 0`,
+    -- splitting on geometry's presence as GetEffectiveScale above splits on
+    -- its scale: once a size setter gives the frame a real rectangle, a later
+    -- read has to see it, not whatever was true the first time this frame's
+    -- GetWidth was resolved and cached. The arithmetic is inlined rather than
+    -- shared with GEOMETRY_GETTERS below, which is declared later in this file
+    -- and so is not yet an upvalue here.
+    GetWidth = function(frame)
+        local geometry = frame.geometry
+        return geometry and (geometry.right - geometry.left) or 0
+    end,
+    GetHeight = function(frame)
+        local geometry = frame.geometry
+        return geometry and (geometry.top - geometry.bottom) or 0
+    end,
+    -- Modelled because lib.ApplyMinimum reads GetWidth/GetHeight before
+    -- deciding whether to grow a widget, and its CALLERS read them back
+    -- afterwards to see what the floor left them -- the generic recorder
+    -- would file each call and leave both readings answering the rectangle
+    -- from before it, so a floor that silently failed to grow the frame would
+    -- still read as one that worked. Growing right/top off the existing
+    -- left/bottom keeps GEOMETRY_GETTERS deriving width and height from the
+    -- same four numbers it always has.
+    --
+    -- All three axis setters are here, not SetSize alone: a widget that sizes
+    -- one axis (CheckButtonMixin:OnLoad's PixelUtil.SetHeight, a button's own
+    -- SetText) leaves the other for the floor to raise, and a harness that
+    -- modelled only the pair would hand ApplyMinimum a rectangle the client
+    -- would never report -- which is how a missing floor call under SetWidth
+    -- stayed invisible to this suite.
+    SetSize = function(frame, width, height)
+        local geometry = sizeableGeometry(frame)
+        geometry.right = geometry.left + width
+        geometry.top   = geometry.bottom + height
+    end,
+    SetWidth = function(frame, width)
+        local geometry = sizeableGeometry(frame)
+        geometry.right = geometry.left + width
+    end,
+    SetHeight = function(frame, height)
+        local geometry = sizeableGeometry(frame)
+        geometry.top = geometry.bottom + height
     end,
     -- A real client measures rendered glyphs; headless Lua cannot, so a
     -- button label answers zero-width text rather than a fresh recording
@@ -256,7 +328,11 @@ local GEOMETRY_GETTERS = {
     GetBottom          = function(geometry) return geometry.bottom end,
     GetWidth           = function(geometry) return geometry.right - geometry.left end,
     GetHeight          = function(geometry) return geometry.top - geometry.bottom end,
-    GetEffectiveScale  = function(geometry) return geometry.scale or 1 end,
+    -- The same fallback MODELLED_STATE.GetEffectiveScale uses, and for the
+    -- same reason: which of the two answers a given frame depends only on
+    -- whether it had geometry the first time the key was resolved, and the
+    -- two must not disagree about a frame nobody gave a scale.
+    GetEffectiveScale  = function(geometry) return geometry.scale or UI_UNIT_FACTOR end,
 }
 
 --- Gives a frame stub a real rectangle, so the getters in GEOMETRY_GETTERS
@@ -282,6 +358,7 @@ end
 -- check would never see it as absent without landing here too.
 local OPTIONAL_WIDGET_FIELDS = {
     Icon = true, Accent = true, Lead = true, Link = true, Footnote = true,
+    Label = true,
     NineSlice = true, Border = true, Bg = true, BG = true, GetRegions = true,
 }
 
@@ -315,10 +392,13 @@ function harness.newFrame(frameType, frameName, frameParent, frameTemplate)
         checked       = false,
         -- And an enabled one: every widget type that has the pair starts live.
         enabled       = true,
-        -- No rectangle by default: GetLeft/GetRight/GetTop/GetBottom/GetWidth/
-        -- GetHeight/GetEffectiveScale fall through to the generic recording
-        -- stub below until harness.setFrameGeometry gives this frame real
-        -- numbers. See GEOMETRY_GETTERS.
+        -- No rectangle by default: GetLeft/GetRight/GetTop/GetBottom fall
+        -- through to the generic recording stub below until
+        -- harness.setFrameGeometry gives this frame real numbers -- see
+        -- GEOMETRY_GETTERS. GetWidth/GetHeight/GetEffectiveScale are the
+        -- exception: MODELLED_STATE answers each of those with a real
+        -- number even before geometry exists, matching what the client
+        -- itself reports for an unsized frame.
         geometry      = nil,
     }, frameMeta)
     -- A real client resolves CreateFrame's (and any wrapper's) name argument
@@ -425,9 +505,11 @@ end
 --- harness.stub.fontStringHeights, keyed by the text, and REFUSES text it has
 --- no height for rather than answering 0 -- a fixture that forgets to
 --- register one would otherwise compute an edge from a height nobody
---- measured and pass silently. SetHeight is deliberately left to the generic
---- recorder, so a test can still assert that a wrapping region was never
---- pinned to a fixed height.
+--- measured and pass silently. SetHeight is now modelled in MODELLED_STATE
+--- (for GetHeight to answer an explicit height a widget was actually given),
+--- but the generic recorder still files the call first, so a test can still
+--- assert via .calls.SetHeight that a wrapping region was never pinned to a
+--- fixed height.
 ---@param fontString table  a harness.newFrame(...) stub
 function harness.installFontStringBehaviour(fontString)
     local text = ""
@@ -721,6 +803,24 @@ function harness.installGlobals()
     -- UIParentPanelManager.lua:20. A list of frame NAMES, which is why a
     -- frame that wants Escape-to-close needs a global one.
     _G.UISpecialFrames = {}
+
+    -- The client's post-hook: the original still runs, and runs FIRST, with
+    -- the hook seeing the same arguments and the state the original left. A
+    -- CheckButton's own mixin depends on exactly that ordering -- its hook
+    -- reads GetChecked back to repaint, so a stub that ran the hook first
+    -- would repaint the state the widget is leaving. Only the
+    -- (table, methodName, hook) form is modelled; nothing in this library
+    -- takes the global-function-name form.
+    _G.hooksecurefunc = function(object, methodName, hook)
+        assert(type(object) == "table",
+            "the harness models only hooksecurefunc(table, methodName, hook)")
+        local original = object[methodName]
+        object[methodName] = function(...)
+            local results = table.pack(original(...))
+            hook(...)
+            return table.unpack(results, 1, results.n)
+        end
+    end
 end
 
 function harness.newNamespace()

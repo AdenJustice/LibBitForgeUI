@@ -1,4 +1,4 @@
--- LibBitForgeUI's palette and fonts -- the twelve ColorMixin objects, the
+-- LibBitForgeUI's palette and fonts -- the sixteen ColorMixin objects, the
 -- sixteen Font objects, SetFonts's in-place override, GetPixel, and the
 -- separator texture built from the palette. The constraint the whole move
 -- exists to protect is at the bottom: an upgrade reuses every colour and
@@ -18,7 +18,7 @@ local COLOR_KEYS = {
 
 local colorCount = 0
 for _ in pairs(lib.Colors) do colorCount = colorCount + 1 end
-harness.assertEqual(colorCount, 12, "lib.Colors has exactly twelve entries")
+harness.assertEqual(colorCount, 16, "lib.Colors has exactly sixteen entries")
 
 for _, key in ipairs(COLOR_KEYS) do
     local color = lib.Colors[key]
@@ -30,7 +30,7 @@ end
 -- danger is BitForge_EUI's own refusal red, promoted rather than invented --
 -- pinned against its own hex so a transcription typo fails here, not in game.
 local dangerR, dangerG, dangerB, dangerA = lib.Colors.danger:GetRGBA()
-local expectedR, expectedG, expectedB, expectedA = CreateColorFromHexString("FFFF4D4D"):GetRGBA()
+local expectedR, expectedG, expectedB, expectedA = CreateColorFromHexString("FFFF5F5F"):GetRGBA()
 harness.assertEqual(dangerR, expectedR, "danger's red channel matches the pinned hex")
 harness.assertEqual(dangerG, expectedG, "danger's green channel matches the pinned hex")
 harness.assertEqual(dangerB, expectedB, "danger's blue channel matches the pinned hex")
@@ -112,5 +112,34 @@ harness.assertEqual(newPointR, wantR, "upgrade applies the new minor's point red
 harness.assertEqual(newPointG, wantG, "upgrade applies the new minor's point green channel")
 harness.assertEqual(newPointB, wantB, "upgrade applies the new minor's point blue channel")
 harness.assertEqual(newPointA, wantA, "upgrade applies the new minor's point alpha channel")
+
+-- The ladder is an ordering claim, not a set of values: bg sits below surface
+-- sits below raised. disabled is a state, not a rung -- it is checked against
+-- surface rather than placed on the ladder. Asserted through relative
+-- luminance so the claim survives a later retune of the hexes.
+local function luminance(color)
+    local function channel(c)
+        return c <= 0.03928 and c / 12.92 or ((c + 0.055) / 1.055) ^ 2.4
+    end
+    local r, g, b = color:GetRGB()
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+end
+
+for _, key in ipairs({ "raised", "textMuted", "success", "highlight" }) do
+    harness.assert(lib.Colors[key] ~= nil, "the palette publishes " .. key)
+end
+
+harness.assert(luminance(lib.Colors.bg) < luminance(lib.Colors.surface),
+    "bg sits below surface on the ladder")
+harness.assert(luminance(lib.Colors.surface) < luminance(lib.Colors.raised),
+    "surface sits below raised on the ladder")
+harness.assert(luminance(lib.Colors.disabled) < luminance(lib.Colors.surface),
+    "the disabled state is a dimmed surface, not a rung of its own")
+harness.assert(luminance(lib.Colors.edge) > luminance(lib.Colors.surface),
+    "a border lifts above the surface it outlines, rather than cutting into it")
+harness.assert(luminance(lib.Colors.edgeHover) > luminance(lib.Colors.edge),
+    "and lifts further under the pointer")
+harness.assert(luminance(lib.Colors.text) > luminance(lib.Colors.textMuted),
+    "body text is brighter than muted text")
 
 harness.done()

@@ -38,10 +38,19 @@ local POINT = { colors.point:GetRGBA() }
 local TEXT = { colors.text:GetRGB() }
 local TEXT_DISABLED = { colors.textDisabled:GetRGB() }
 local UNTINTED = { 1, 1, 1 }
+local RAISED = { colors.raised:GetRGBA() }
 
 --- The border the backdrop was last painted, as r, g, b, a.
 local function borderColor()
     local painted = dropdown.calls.SetBackdropBorderColor
+    return { painted[1], painted[2], painted[3], painted[4] }
+end
+
+--- What the closed box's ground was last painted. Reads the Bg texture
+--- Skin.lua's host-skin bridge strips by name -- the backdrop itself never
+--- carries a fill, so SetBackdropColor is not where this lives.
+local function groundColor()
+    local painted = dropdown.Bg.calls.SetVertexColor
     return { painted[1], painted[2], painted[3], painted[4] }
 end
 
@@ -151,5 +160,8 @@ dropdown:OnMenuClosed(nil)
 harness.assertDeepEqual(borderColor(), EDGE,
     "closing it away from the pointer settles back to the edge")
 harness.assertEqual(dropdown:IsMenuOpen(), false, "and the menu is no longer open")
+
+harness.assertDeepEqual(groundColor(), RAISED,
+    "the closed dropdown has a ground of its own, on the raised plane")
 
 harness.report()
