@@ -7,9 +7,9 @@
 -- game complains when one of those is dropped -- the button still closes the
 -- window -- so each is asserted here rather than left to be noticed.
 --
--- The rest is the glyph. It is a baked asset rather than drawn strokes, sized
--- and anchored rather than laid out arithmetically, and the same widget is
--- asked for at 16 and at 24.
+-- The rest is the glyph -- an X inside a square outline. It is a baked asset
+-- rather than drawn strokes, sized and anchored rather than laid out
+-- arithmetically, and the same widget is asked for at 16 and at 24.
 local harness = dofile("tests/harness.lua")
 
 harness.resetLibStub()
@@ -72,8 +72,8 @@ harness.assertEqual(glyph.frameType, "CreateTexture", "the glyph is a Texture re
 
 -- A baked asset rather than drawn strokes, reached through the library's own
 -- media path -- an embedder that vendors the library elsewhere still finds it.
-harness.assertEqual(glyph.calls.SetTexture[1], UI.GetMedia("close_x"),
-    "the X is loaded from the suite's own art rather than drawn")
+harness.assertEqual(glyph.calls.SetTexture[1], UI.GetMedia("square-xmark-outline"),
+    "the X is loaded from the suite's own icon set rather than drawn")
 
 local glyphPoint = glyph.calls.SetPoint
 harness.assertEqual(glyphPoint[1], "CENTER", "the glyph anchors to the button's centre")
@@ -146,7 +146,9 @@ harness.assertEqual(smallGlyph < wideGlyph, true, "the smaller button draws the 
 harness.assertEqual(smallGlyph / wideGlyph, 16 / 24, "the glyph holds its proportion of the button")
 
 -- The glyph fits inside the button rather than running to its edge: the button
--- is the hit target and the X is the mark on it.
+-- is the hit target and the X is the mark on it. The region is the looser
+-- measure of the two -- the asset carries its own padding, so the drawn square
+-- ends well inside the region this asserts on.
 harness.assertEqual(wideGlyph < 24, true, "the X sits inside its button")
 
 -- A caller that sizes the button after building it gets a glyph to match. This

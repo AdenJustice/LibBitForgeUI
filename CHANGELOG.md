@@ -60,6 +60,13 @@ of it was implemented belongs in the commit.
   not. `lib:SetFonts` now raises on an unknown font variant name instead of
   silently doing nothing — an embedder relying on that silence to no-op a
   misspelled call will now see an error.
+- The close button's glyph is `square-xmark-outline` — an X inside a square
+  outline — rather than the loose strokes of `close_x.tga`, which no longer
+  ships. An embedder that reached for `lib.GetMedia("close_x")` on its own
+  account has to name an icon that exists; the button itself is unchanged in
+  size, hit area, colours and narration. The mark now covers 0.656 of the
+  button's edge rather than the 0.44 the bare X did, so a boxed glyph reads at
+  16 as well as at 24.
 - Default and minimum sizes changed on several widgets: `Button` drops from
   36 to 32 tall (matching `Dropdown` and `EditBox`, which it commonly shares
   a row with); `CheckButton` rises from 24 to 28 tall; the default

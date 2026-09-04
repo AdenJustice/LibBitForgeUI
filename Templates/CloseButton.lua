@@ -20,19 +20,33 @@ local GLYPH_TEXTURE = "Interface/Buttons/WHITE8X8"
 -- level sits behind any scroll frame or backdrop created after it.
 local FRAME_LEVEL = 510
 
--- The X as fractions of the button's edge -- how far it reaches from the
+-- The mark as fractions of the button's edge -- how far it reaches from the
 -- centre, and how heavy its stroke is -- rather than pixel counts, because the
 -- same widget is asked for at 16 and at 24 and a glyph holding an absolute
--- weight reads as a blot at the smaller size.
-local GLYPH_REACH_RATIO = 0.44
--- No longer read by any function here: the stroke is baked into close_x.tga
--- at GLYPH_STROKE_RATIO / GLYPH_REACH_RATIO of the asset's own side, kept so
--- the shipped proportions are traceable and the asset can be regenerated if
--- either ratio ever moves. Losing the runtime reference also loses
--- UI.GetPixel()'s floor -- a drawn stroke could not thin below one physical
--- pixel; a baked asset scaled down has no such floor.
+-- weight reads as a blot at the smaller size. The reach is the boxed X's, not
+-- the bare one's it replaced: a square that only reached as far as the loose
+-- strokes did would leave an X too small to read inside it. The odd-looking
+-- 21/32 is deliberate -- it leaves the region below at exactly fifteen
+-- sixteenths of the button, and a ratio that is a clean binary fraction holds
+-- 16:24 exactly instead of parting from it in a float's last bit.
+local GLYPH_REACH_RATIO = 0.65625
+-- square-xmark-outline.tga is drawn on the icon set's 640-unit canvas: its
+-- square runs 96..544, and every stroke in it -- the border and both arms of
+-- the X -- is 48 wide. The art covers only the middle of the file, so the
+-- region is sized by the inverse of that share; without it the reach ratio
+-- would be measuring the asset's padding as well as its mark.
+local GLYPH_ART_SPAN = 448 / 640
+-- Divided here rather than per layout, so every button scales the same single
+-- number and two sizes of the same widget stay in proportion.
+local GLYPH_REGION_RATIO = GLYPH_REACH_RATIO / GLYPH_ART_SPAN
+-- No longer read by any function here: the stroke is baked into the asset, and
+-- this is what it comes to against the button's edge, kept so the shipped
+-- proportions are traceable and the reach can be retuned against them. Losing
+-- the runtime reference also loses UI.GetPixel()'s floor -- a drawn stroke
+-- could not thin below one physical pixel; a baked asset scaled down has no
+-- such floor.
 ---@diagnostic disable-next-line: unused-local
-local GLYPH_STROKE_RATIO = 0.10
+local GLYPH_STROKE_RATIO = GLYPH_REACH_RATIO * 48 / 448
 
 -- Faint, and additive over whatever the window put behind the button. The
 -- number is Buttons.lua's, so a close button and an ordinary button light up by
@@ -45,14 +59,14 @@ local HIGHLIGHT_ALPHA = 0.1
 
 local function BuildGlyph(self)
     local glyph = self:CreateTexture(nil, "ARTWORK")
-    glyph:SetTexture(UI.GetMedia("close_x"))
+    glyph:SetTexture(UI.GetMedia("square-xmark-outline"))
 
     self.Glyph = { glyph }
 end
 
 ---@param edge number  The button's shorter side, in UI units.
 local function LayoutGlyph(self, edge)
-    local side = edge * GLYPH_REACH_RATIO
+    local side = edge * GLYPH_REGION_RATIO
     local glyph = self.Glyph[1]
 
     glyph:SetSize(side, side)
