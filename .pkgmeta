@@ -6,10 +6,11 @@ package-as: LibBitForgeUI
 # development-only.
 #
 # Consequences worth naming rather than rediscovering. The zip holds only files
-# from this repository, so nothing can drag in the web content CurseForge refuses
-# an archive for; that is why release.yaml does not check for any. And the .toc
-# is packaging metadata, not a load path -- an embedder loads lib.xml, or lists
-# its files in their own .toc, and never reads ours.
+# from this repository, so nothing can drag in the web content a site like
+# CurseForge refuses an archive for; that, and the fact that the workflow
+# uploads nowhere but GitHub, is why release.yaml does not check for any. And
+# the .toc is packaging metadata, not a load path -- an embedder loads lib.xml,
+# or lists its files in their own .toc, and never reads ours.
 
 enable-nolib-creation: no
 

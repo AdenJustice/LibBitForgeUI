@@ -20,20 +20,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Wago is deliberately not wired up. The packager uploads there only when
-      # WAGO_API_TOKEN is in the environment, so leaving it out is the whole of
-      # it -- do not add the secret back "just in case", because an X-Wago-ID in
-      # the .toc plus a present token is all it takes to start publishing there.
+      # Neither CurseForge nor Wago is wired up, and both are left out the same
+      # way: the packager uploads to a site only when that site's token is in
+      # its environment, so the whole of not publishing there is not putting
+      # CF_API_KEY or WAGO_API_TOKEN here. This step builds the zip and stops.
       #
-      # CurseForge uploads once the .toc carries ## X-Curse-Project-ID *and*
-      # CF_API_KEY is set on this repository. Neither exists yet, so today this
-      # step builds the zip and stops there -- no error, no upload. It starts
-      # publishing the moment the id and the secret are added, with no change
-      # here.
+      # Do not add either back "just in case". A token here plus the matching
+      # id in the .toc -- ## X-Curse-Project-ID, ## X-Wago-ID -- is all it takes
+      # to start publishing, and each half is inert alone, so the pair arrives
+      # by accident rather than by decision. Adding a distribution channel is
+      # the user's call to make explicitly, not a gap for a later session to
+      # close.
       - name: Package and Release
         uses: BigWigsMods/packager@master
         env:
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
@@ -52,13 +52,14 @@ jobs:
           path: .release/*.zip
           retention-days: 7
 
-      # There is no zip audit here on purpose. CurseForge refuses an archive
-      # carrying web content and reports it out of band, so the packager prints
-      # Success! and the workflow stays green -- BitForge shipped two releases
-      # that way. What made that possible there is externals, which arrive as
-      # whole repository checkouts with docs/ attached. This package has none:
-      # every file in the zip comes from this repository and none of them is
-      # web content. Add the check back the day .pkgmeta grows an external.
+      # There is no zip audit here, for two reasons that stack. The check
+      # existed because CurseForge refuses an archive carrying web content and
+      # reports it out of band -- the packager prints Success! and the workflow
+      # stays green, which is how BitForge shipped two releases that never
+      # arrived. Nothing is uploaded there from here any more, and the thing
+      # that made it possible was externals, which arrive as whole repository
+      # checkouts with docs/ attached. This package has none. Bring the check
+      # back the day either of those changes.
 
       - name: Delete old successful runs
         env:

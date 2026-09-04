@@ -30,15 +30,14 @@ or changelog entry names a version before this point.
 
 Pushing the tag publishes the addon. `.github/workflows/release.yaml` fires on any `v*` tag
 reaching `origin`, packages the library with the BigWigs packager, and creates a GitHub
-release. It uploads to CurseForge as well as soon as `LibBitForgeUI.toc` carries
-`## X-Curse-Project-ID` and this repository carries the `CF_API_KEY` secret; until then it
-silently skips that and publishes to GitHub alone.
+release. **GitHub is the only place it goes.**
 
-**Wago is deliberately not part of this pipeline.** The workflow does not put
-`WAGO_API_TOKEN` in the packager's environment, which is the whole of what keeps uploads
-from going there. Do not add the secret, and do not add an `## X-Wago-ID` to the `.toc` —
-either one alone is inert, but the pair starts publishing. Adding Wago is a decision for
-the user to make explicitly, not a gap to close.
+**Neither CurseForge nor Wago is part of this pipeline**, and both are kept out the same
+way: the packager uploads to a site only when that site's token is in its environment, and
+the workflow puts neither `CF_API_KEY` nor `WAGO_API_TOKEN` there. Do not add either, and
+do not add the matching `## X-Curse-Project-ID` or `## X-Wago-ID` to the `.toc` — each half
+is inert alone, which is exactly why the pair arrives by accident. Adding a distribution
+channel is a decision for the user to make explicitly, not a gap to close.
 
 Treat Step 5 as the point of no return — Steps 0–4 are local and undoable; nothing after
 Step 5 is.
@@ -185,9 +184,8 @@ anchored on the game version, and a malformed `<wow-version>` would match everyt
 ## Step 5 — Push main and the tag to origin
 
 This publishes the release. Print the version, the commit subject, and what the workflow
-will do with it — GitHub release only, or CurseForge as well, depending on whether the
-project id and the secret are in place — then get the user's go-ahead before running it.
-Everything above is undoable; this is not.
+will do with it — build the zip and create a GitHub release, and nothing else — then get
+the user's go-ahead before running it. Everything above is undoable; this is not.
 
 ```bash
 git push origin main
@@ -215,11 +213,13 @@ Watch it to completion rather than reporting on the launch alone:
 gh run watch --repo AdenJustice/LibBitForgeUI <run-id>
 ```
 
-A green run is not proof the upload landed. CurseForge refuses an archive out of band, after
-the upload returns, so the packager prints Success! and the workflow stays green either way —
-that is how BitForge shipped two releases that never reached CurseForge. This package carries
-only this repository's files, which is why nothing audits the zip here; if that ever stops
-being true, the check has to come back before the audit does.
+A green run means the zip built and the GitHub release exists — check that the release is
+actually there rather than taking the green tick for it. There is no third-party upload left
+to go wrong silently, which is the other half of why nothing audits the zip here: the audit
+existed because CurseForge refuses an archive out of band, after the upload returns, so the
+packager prints Success! and the workflow stays green either way — that is how BitForge
+shipped two releases that never arrived. Bring the check back the day this pipeline gains a
+destination other than GitHub.
 
 ## Step 6 — Report
 
@@ -228,7 +228,7 @@ being true, the check has to come back before the audit does.
 - The `main` release commit SHA, and confirmation that `main` matches `origin/main`
 - That the push was a fast-forward, with no force used
 - Release workflow run URL, and its outcome if you waited for it
-- Where the build actually went: GitHub release only, or CurseForge as well
+- That the GitHub release exists and carries the zip — the only destination this pipeline has
 - **The SHA an embedder needs.** A tag here changes nothing for an addon that vendors this
   library as a submodule until that addon bumps its pointer. Name the SHA and the tag and
   say which repository has to bump — do not go and bump it.
