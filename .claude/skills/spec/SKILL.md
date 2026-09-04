@@ -31,7 +31,9 @@ spec nobody else can see.
 **This repository has one remote.** `origin` is `AdenJustice/LibBitForgeUI`, it
 is public, and it is both the tracker and the release branch's home. There is no
 private mirror to file against and no filtered public branch to keep a spec out
-of, so a spec here is public from the moment it is filed. Write it knowing that.
+of — `embed` exists alongside `main`, but it carries the same files and is a
+place to commit from an addon's submodule checkout, not a publication channel. So
+a spec here is public from the moment it is filed. Write it knowing that.
 
 ## The one thing that is worth a design at all
 

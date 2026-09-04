@@ -42,6 +42,48 @@ and so on). The `BitForgeFont` prefix is the original addon's name, kept
 because call sites across the suite consume those names as strings rather
 than as `lib.Fonts` table lookups.
 
+### Which commit to pin
+
+Pin the submodule to a commit on `main`, or to a `v*` tag. That is what a
+release is.
+
+The repository also has an `embed` branch. It carries exactly the same files
+as `main` and exists so that a fix found while you are working inside your own
+addon can be committed from the submodule checkout itself, rather than retyped
+in a separate clone of this repository. If you want that, name the branch in
+your `.gitmodules`:
+
+```
+[submodule "YourAddon/Libs/LibBitForgeUI"]
+    path = YourAddon/Libs/LibBitForgeUI
+    url = https://github.com/AdenJustice/LibBitForgeUI.git
+    branch = embed
+```
+
+and move it with `git submodule update --remote`.
+
+A submodule is checked out at a detached HEAD, and `--remote` leaves it that
+way, so switch it onto the branch once before committing or pushing from it:
+
+```sh
+git -C YourAddon/Libs/LibBitForgeUI switch embed
+```
+
+Without that, `git push origin embed` from inside the submodule fails with
+`src refspec embed does not match any`, or pushes a stale local branch.
+
+`embed` is a working branch: at rest it is the same commit as `main`, and it
+runs ahead only while a fix is in flight. Nothing is ever force-pushed to it,
+so a commit you have pinned stays reachable — but a fix that has not landed on
+`main` yet is a fix that has not been reviewed or released, so pin `main` or a
+tag for anything you ship.
+
+To go back to pinning `main`, drop the `branch = embed` line from
+`.gitmodules`, detach the submodule onto the commit or tag you want
+(`git -C YourAddon/Libs/LibBitForgeUI switch --detach v1.2.3`), and commit the
+moved pointer in your addon. Either way, a fresh clone of your addon still
+needs `git submodule update --init` before the library is there at all.
+
 ## Media paths
 
 The library resolves texture paths under

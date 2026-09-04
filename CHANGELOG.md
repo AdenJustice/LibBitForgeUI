@@ -46,6 +46,15 @@ of it was implemented belongs in the commit.
   palette's elevation ladder — the plane an interactive control like the
   dropdown's closed box or the edit box now sits on, instead of the window's
   own background.
+- An `embed` branch to vendor from. It carries exactly the same files as
+  `main` — nothing is filtered out of it — and exists so that a fix you find
+  while working inside your own addon can be committed from the submodule
+  checkout itself rather than retyped in a separate clone. Name it with
+  `branch = embed` in your `.gitmodules` and move it with `git submodule
+  update --remote`. Pin `main` or a `v*` tag for anything you ship: `embed`
+  runs ahead of `main` only while a fix is in flight, and a commit on it that
+  has not landed is one that has not been reviewed or released. Nothing is
+  ever force-pushed to it, so a commit you have pinned stays reachable.
 
 ### Changed
 

@@ -1,27 +1,28 @@
 ---
 name: land
-description: Land a finished worktree branch onto main — verify tests, log the work under the CHANGELOG Unreleased section, audit README.md, squash the branch into a single commit, fast-forward it onto main, remove the worktree, then push main to origin. Use when every task on the worktree is complete and reviewed and the work needs to reach main.
+description: Land finished work onto main — from a task worktree, or from the embed branch a vendoring addon commits to — verify tests, log the work under the CHANGELOG Unreleased section, audit README.md, reduce the work to one commit on main (a worktree branch is squashed and fast-forwarded; embed is squash-merged and never rewritten), remove the worktree, then push main to origin. Use when every task on the worktree is complete and reviewed and the work needs to reach main.
 model: sonnet
 effort: xhigh
 ---
 
-Land the current task branch onto `main`. This is the first step of a two-stage
-pipeline: `land` moves finished work from a worktree onto `main` **without touching
-version numbers**; `release` later stamps the version, tags, and publishes. Follow these
-steps exactly.
+Land the current task branch — or `embed` — onto `main`. This is the first step of a
+two-stage pipeline: `land` moves finished work from a worktree or from `embed` onto `main`
+**without touching version numbers**; `release` later stamps the version, tags, and
+publishes. Follow these steps exactly.
 
 `main` is **append-only** — it is the public branch, every merge this skill adds stays on
 it forever, and nothing downstream squashes it away. That makes Step 4's commit message the
 only account of this work `main` will ever carry, and it makes Step 6's push permanent. The
-squash in Step 4 rewrites **the task branch only**, before it is fast-forwarded; `main`
-itself is never rewritten by any skill in this pipeline.
+squash in Step 4 rewrites **the task branch only**, before it is fast-forwarded — and when
+the source is `embed` it rewrites nothing at all, because that branch is squash-merged onto
+`main` instead. `main` itself is never rewritten by any skill in this pipeline.
 
-**Run this once the worktree is finished, not once a task is.** A plan's tasks accumulate
+**Run this once the branch is finished, not once a task is.** A plan's tasks accumulate
 on one branch and land together, so the plan reaches `main` as one commit rather than as a
 run of them nothing ties together. Each task still finishes fully — implemented, reviewed,
 fixed — before the next is dispatched; only the landing waits.
 
-The unit is therefore the worktree, not the task and not the commit.
+The unit is therefore the branch, not the task and not the commit.
 
 Two things that follow. Reviewed work sits unlanded for longer, so the branch is the only
 copy of it until this runs — do not delete a worktree you have not landed. And `main` may
@@ -38,6 +39,37 @@ running as its own command** rather than assuming; read what it prints.
 
   Unlike the addon that vendors this library, this repository has **no submodules**, so
   there is no `submodule update --init` to follow that line.
+
+- **`embed` is the second place work may start.** It is a permanent branch on `origin`,
+  unfiltered — every file `main` carries, it carries — and it exists so a fix found while
+  working inside an addon that vendors this library can be committed from that addon's
+  submodule checkout instead of being retyped in a worktree here. At rest
+  `git diff main embed` is empty; it runs ahead of `main` only while such work is in
+  flight. It is **not** a branch to pin a release to — releases are `main` and the `v*`
+  tags on it.
+
+  The submodule checkout is a **different clone**: its git directory lives under the
+  addon's `.git/modules/`, so nothing is shared with this repository except through
+  `origin`. It also starts at a detached HEAD, and `git submodule update --remote` leaves
+  it there, so it has to be switched onto `embed` once before anything can be committed or
+  pushed from it.
+
+  ```bash
+  # in the addon's submodule checkout, once the fix is committed on embed
+  git push origin embed
+
+  # here, before landing it
+  git fetch origin embed
+  git branch -f embed origin/embed
+  git switch embed
+  ```
+
+  The order is not a preference: `branch -f` is refused while `embed` is checked out
+  (`fatal: cannot force update the branch 'embed' used by worktree at …`), so the ref is
+  moved from `main` and switched to afterwards.
+
+  That `-f` updates a local ref this clone does not author. It publishes nothing, it is
+  not a rewrite, and it is the only `-f` this skill permits.
 
 - **Address every worktree explicitly** — `git -C /abs/path/to/worktree …` — and use
   absolute paths for file edits and **for every read**. A `cd .worktrees/<task>` that
@@ -57,7 +89,9 @@ running as its own command** rather than assuming; read what it prints.
 Run in parallel:
 
 - `git branch --show-current` — the task branch name
-- `git worktree list` — confirm you are inside a `.worktrees/<task-slug>` worktree
+- `git worktree list` — confirm you are inside a `.worktrees/<task-slug>` worktree, **or**
+  that the branch from the first check is `embed`, which is landed from this repository's
+  own checkout after the fetch-and-switch above rather than from a worktree
 - `git status` — what is uncommitted, if anything
 - `git log main..HEAD --oneline` — the commits about to land
 - `git diff main..HEAD --stat` — the files about to land
@@ -77,6 +111,10 @@ everything modified or untracked is meant to land. If something is not, deal wit
 Step 4's `DIVERGED` check is the backstop, not the first line of defence — it stops the
 landing, it does not tell you which file it stopped over.
 
+**An `embed` source reaches the same outcome by a different route:** Step 4 has you commit
+the remainder on `embed` first, because a squash-merge carries commits and not a working
+tree. Left uncommitted there, it does not land.
+
 **If `git merge-base --is-ancestor main HEAD` fails, `main` is ahead of this branch** —
 other work landed while this task was in flight. Do not continue to Step 4 in that state.
 Merge `main` into the task branch first, resolve any conflicts, re-run `tests/run.sh`, and
@@ -86,6 +124,11 @@ only then proceed:
 git merge --no-edit main
 git merge-base --is-ancestor main HEAD && echo OK   # must now print OK
 ```
+
+**This stop does not apply when the source is `embed`.** The reason it exists is that Step
+4's `git reset --soft main` assumes `main` is an ancestor; the `embed` path in Step 4 does
+not reset anything and merges for real, so a `main` that has moved on is resolved by the
+merge rather than reverted by it.
 
 This is not a formality. Step 4 rebuilds the branch from `git reset --soft main` plus the
 working tree, which silently assumes `main` is an ancestor. When it is not, the working
@@ -164,9 +207,15 @@ Run these checks and fix what the branch made inaccurate:
 
 Skip a check only when this branch plainly could not have affected it.
 
-Leave the edits from Steps 2 and 3 uncommitted. Step 4 absorbs them.
+Leave the edits from Steps 2 and 3 uncommitted. Step 4 absorbs them — except when the
+source is `embed`, where Step 4 has you commit them on `embed` first, because a
+squash-merge carries commits and not a working tree.
 
 ## Step 4 — Squash the branch into one commit
+
+**If the source is `embed`, do not use this section.** Go straight to *If the source is
+`embed`* below: the reset-and-rebuild here would rewrite a branch other repositories pin
+commits on.
 
 The commits on a task branch accumulate in the order the work happened — a fix, a second
 fix, a test, a revert of the first fix. That order is a record of the session, not of the
@@ -185,6 +234,10 @@ must be an ancestor of `HEAD` (Step 0). If you skipped or deferred that check, r
 `git merge-base --is-ancestor main HEAD` — and merge `main` in before going further. The
 snapshot below cannot detect the problem, because it is taken from the same working tree
 that is missing `main`'s commits.
+
+**This binds the worktree source only.** It is the reset below that needs `main` to be an
+ancestor; *If the source is `embed`* does not reset anything and resolves a moved-on `main`
+by merging it, which is the exemption Step 0 granted.
 
 Snapshot the intended final state first — this is what proves the squash lost nothing:
 
@@ -271,6 +324,69 @@ Step 0's git log>` to get back to the original tip, then start Step 4 over.
 Note that the commit is tested as a whole, which is what it is — one verified end state,
 not a run of checkpoints. That is one thing the squash costs nothing to be honest about.
 
+### If the source is `embed`
+
+Do not use the reset-and-rebuild above. `embed` is long-lived and other repositories pin
+commits on it, so it is never rewritten. Squash-merge it onto `main` instead, then merge
+`main` back so the two agree again.
+
+**Land from a quiet branch.** A commit pushed to `embed` after Step 0's fetch is not in the
+squash and surfaces as the next landing's diff. If one arrives mid-landing, stop and start
+over from the fetch.
+
+**The Steps 2 and 3 edits are committed on `embed` first, not left in the working tree.**
+`git merge --squash` carries commits; an uncommitted CHANGELOG entry is simply left behind,
+and the `git diff main embed --stat` below still prints nothing, so nothing else catches it.
+
+All of this runs in the main checkout — the one Step 0 confirmed you are in, with `embed`
+checked out — which is why the calls are bare rather than `git -C`:
+
+```bash
+git add -A -- CHANGELOG.md README.md   # whatever Steps 2 and 3 touched, by name
+git commit -m "docs: log this work in the CHANGELOG"
+git status --porcelain                 # must print nothing before you leave embed
+
+git switch main
+git merge --squash embed
+git diff --name-only --diff-filter=U   # must print nothing — a conflict stops the landing
+tests/run.sh                           # re-run when main had moved on: nothing has tested
+                                       # this tree yet, on either branch
+git commit -m "$(cat <<'COMMIT_EOF'
+feat(templates): <what this work did>
+
+<one line per concern the work carried, in the order a reader wants them>
+
+<the Co-Authored-By and session trailers this session was given>
+COMMIT_EOF
+)"
+git switch embed
+git merge --no-edit main
+```
+
+The `git status --porcelain` there is check 1 of *Verify the squash*, which applies on this
+path unchanged: nothing may be left in the working tree, because nothing left there lands.
+The two lines between the merge and the commit are what stand in for the ancestor stop this
+source is exempt from — a conflicted merge committed here would put conflict markers on an
+append-only public branch, and when `main` has moved on the merged tree has been tested on
+neither branch.
+
+`main` gains exactly one ordinary commit and no merge commit — the same shape a worktree
+branch lands as. The back-merge costs one merge commit on `embed` and nothing else, and
+after it the two branches hold the same tree again.
+
+That last part is what replaces the `$SNAPSHOT` comparison, which has nothing to compare
+here:
+
+```bash
+git diff main embed --stat
+```
+
+It must print nothing. Empty means the squash carried everything `embed` had; anything
+printed means the merge lost something, and you stop.
+
+**Skip Step 5's fast-forward for this source** — `main` already has the commit — and go
+straight to Step 6.
+
 ## Step 5 — Fast-forward main and clean up
 
 The merge happens in the main checkout — the first entry of the `git worktree list` from
@@ -291,6 +407,10 @@ of those two facts stopped being true — `main` moved after Step 0, or Step 4 p
 something other than a single commit on top of it. Stop and find out which. Do not fall
 back to a merge commit to get past it; that buries the problem in `main` instead of
 reporting it.
+
+**`embed` is never removed and never deleted.** The removal below is for a task branch,
+which exists for one plan and is finished when that plan lands; `embed` outlives every
+landing and stays checked out in whatever addon is using it.
 
 Then remove the worktree and the branch — the plan is done, which is why this ran at all:
 
@@ -314,6 +434,26 @@ is clean:
 git -C <main-checkout> push origin main
 ```
 
+When the source was `embed`, push it as well — the back-merge in Step 4 leaves it ahead of
+`origin/embed` by one merge commit, so this is a fast-forward and the no-`--force` rule in
+the notes below applies here unchanged:
+
+```bash
+git -C <main-checkout> push origin embed
+```
+
+Still for that source, the addon's submodule checkout is then brought back into line, in
+that checkout — **only when it is clean**, because the reset discards uncommitted work in a
+repository that is the user's rather than this skill's:
+
+```bash
+git status --porcelain    # must print nothing first
+git fetch && git reset --hard origin/embed
+```
+
+If it prints anything, leave that checkout untouched and hand the resync to the user in
+Step 7, the way the pointer bump is already handed over.
+
 Notes on why this is written the way it is:
 
 - **No `--force`, ever.** `land` only adds commits on top of `main`, so this is always a
@@ -334,12 +474,16 @@ Print a short summary:
 
 - The commit as squashed — its subject, and what its body records about the concerns the
   branch carried
-- Confirmation that `git status` was empty and the tree hash matched `$SNAPSHOT`
+- Confirmation that `git status` was empty and the tree hash matched `$SNAPSHOT` — or, for
+  an `embed` source, that `git diff main embed --stat` printed nothing
 - Test result (`tests/run.sh` — pass), and that it covers the branch tip only
 - Whether CHANGELOG/README were updated, and if not, why not
 - The merge commit SHA, and either confirmation that the worktree and task branch are gone
-  or a statement that they were kept because more tasks in this plan remain
-- That `main` was pushed to `origin`, and the remote SHA it now points at
+  or a statement that they were kept because more tasks in this plan remain — for an
+  `embed` source, the SHA of the commit `main` gained, and that nothing was removed
+- That `main` was pushed to `origin`, and the remote SHA it now points at — and, for an
+  `embed` source, that `embed` was pushed too, plus whether its submodule checkout was
+  resynced or left to the user because it was dirty
 - **The SHA an embedder needs.** This library is vendored as a git submodule, so nothing
   that landed here reaches an addon until that addon bumps its pointer at it. Name the SHA
   and say which repository has to bump — do not go and bump it. That is a change in

@@ -10,8 +10,16 @@ version**, **stamp it onto the CHANGELOG heading**, **tag**, and **push `main` a
 to `origin`**.
 
 There is no promotion stage here and no filtered public branch. This repository has one
-remote and one branch: `land` merges finished work onto `main` and pushes it, and `release`
-gives the tree that is already there a version and sends the tag after it.
+remote and two branches, and only one of them is ever released from: `land` merges finished
+work onto `main` and pushes it, and `release` gives the tree that is already there a version
+and sends the tag after it.
+
+The other is `embed` — unfiltered, carrying every file `main` carries, and there so a fix
+found inside an addon that vendors this library can be committed from that addon's submodule
+checkout. **It is never tagged and never released from.** At rest it is the same commit as
+`main`, so releasing from `main` releases what it holds anyway; while work is in flight on
+it, that work is precisely what has not landed yet. Step 0's `git branch --show-current`
+check already refuses to run anywhere but `main`, and it stays exactly as it is.
 
 **`main` is append-only.** This skill adds one commit to it and never rewrites it — no
 `--amend`, no `reset`, no rebase, and no forced push. It is public and other clones have
