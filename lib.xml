@@ -10,4 +10,5 @@
 	<Script file="Templates\Bar.lua" />
 	<Script file="Templates\Slider.lua" />
 	<Script file="Templates\TextWindow.lua" />
+	<Script file="Templates\ScrollList.lua" />
 </Ui>

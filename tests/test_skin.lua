@@ -165,6 +165,20 @@ local headerShell = skin.BuildWindowShell(headerFrame, { includeHeader = true, i
 harness.assert(headerShell.header ~= nil, "includeHeader = true adds a header piece")
 harness.assertEqual(headerShell.innerTop, nil, "includeInnerTop = false omits the inner top piece")
 
+-- Pinned because this exact number already drifted out of step with the rest
+-- of the scale once, silently: metrics.control moved from 30 to 32 everywhere
+-- BuildWindowShell's default header stayed the old value the discipline scan
+-- could not see through a bare `or 30`. Nothing else in this file would
+-- notice a second regression.
+harness.assertEqual(headerShell.header.calls.SetHeight[1], lib.Metrics.control,
+    "BuildWindowShell's default header height tracks lib.Metrics.control")
+
+local explicitHeaderFrame = harness.newFrame("Frame", "ShellExplicitHeaderFrame")
+local explicitHeaderShell = skin.BuildWindowShell(explicitHeaderFrame,
+    { includeHeader = true, headerHeight = 48 })
+harness.assertEqual(explicitHeaderShell.header.calls.SetHeight[1], 48,
+    "an explicit options.headerHeight still overrides the metrics default")
+
 -- StyleScrollBar tolerates a scroll bar missing the optional regions it looks for
 
 local bareScrollBar = { calls = {} }

@@ -67,6 +67,7 @@ local CreateColor = CreateColorFromHexString
 ---@field textDisabled colorRGBA
 ---@field edge colorRGBA
 ---@field edgeHover colorRGBA
+---@field selection colorRGBA
 
 -- Populated into the table, never assigned over it: a widget built by an
 -- older minor holds a reference to the objects in here. A minor upgrade
@@ -83,7 +84,27 @@ local function SetColor(key, hex)
     end
 end
 
-SetColor("point", "FF45B7D1")
+--- A colour that is another token's hue at a different alpha. Derived rather
+--- than written as its own hex so the pair cannot drift: a change to the
+--- source reaches the variant in the same edit.
+---
+--- Like SetColor, it mutates an existing object rather than replacing it --
+--- and it re-derives on every load, so a minor bump that changes the source
+--- reaches the variant too.
+local function SetDerivedColor(key, sourceKey, alpha)
+    local red, green, blue = colors[sourceKey]:GetRGB()
+    if not colors[key] then
+        -- Identity only. The SetRGBA below is what carries the value, on this
+        -- load and on every later one.
+        colors[key] = CreateColor("FF000000")
+    end
+    colors[key]:SetRGBA(red, green, blue, alpha)
+end
+
+SetColor("point", "FF22D3EE")
+-- Three embedders had each invented a translucent selection fill and no two
+-- agreed -- 0.2 over point, 0.25 over point, and 0.3 over an unrelated blue.
+SetDerivedColor("selection", "point", 0.25)
 SetColor("hover", "FF4B5267")
 -- The one warm token, and the suite's only red: a close affordance and a
 -- refused save both have to read as "not the rest of this window", while
@@ -95,7 +116,16 @@ SetColor("hover", "FF4B5267")
 SetColor("danger", "FFFF5F5F")
 SetColor("success", "FF4ADE80")
 SetColor("highlight", "FFFFC93C")
-SetColor("bg", "FF0E0F12")
+-- The alpha is the window ground's opacity, and this is the only place it
+-- lives: Templates/Frame.lua used to paint bg at a private 0.5, so every
+-- contrast value chosen for this palette was computed against a ground that
+-- never reached the screen. Over a bright scene at 0.5 the effective ground
+-- is #868788, where textMuted measures 1.37:1. At 0.95 the worst case holds
+-- every token within 10% of the value it was chosen at.
+--
+-- A caller that wants the colour without the ground's transparency -- a
+-- solid underlay, a text colour -- reads GetRGB rather than GetRGBA.
+SetColor("bg", "F20E0F12")
 SetColor("bgDisabled", "7F0E0F12")
 SetColor("surface", "FF1B1D23")
 SetColor("raised", "FF2A2D35")
@@ -320,6 +350,7 @@ SetMinimum("Dropdown",      96, 24)
 SetMinimum("EditBox",       80, 24)
 SetMinimum("Frame",        160, 96)
 SetMinimum("ScrollEditBox", 120, 48)
+SetMinimum("ScrollList",    120, 48)
 SetMinimum("Slider",        80, 20)
 SetMinimum("TextWindow",   320, 240)
 

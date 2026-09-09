@@ -26,16 +26,20 @@ function SliderMixin:OnLoad()
     self:SetSize(metrics.defaultWidth, metrics.controlSmall)
     self:SetOrientation("HORIZONTAL")
 
+    -- The thumb's edge lands on the track's end rather than past it -- a
+    -- derivation of thumbWidth, not a spacing value of its own.
+    local trackInset = metrics.thumbWidth / 2
+
     local track = self:CreateTexture(nil, "BACKGROUND")
     PixelUtil.SetHeight(track, metrics.xs, 1)
-    PixelUtil.SetPoint(track, "LEFT", self, "LEFT", 3, 0)
-    PixelUtil.SetPoint(track, "RIGHT", self, "RIGHT", -3, 0)
+    PixelUtil.SetPoint(track, "LEFT", self, "LEFT", trackInset, 0)
+    PixelUtil.SetPoint(track, "RIGHT", self, "RIGHT", -trackInset, 0)
     track:SetColorTexture(colors.edge:GetRGB())
     self.Track = track
 
     local fill = self:CreateTexture(nil, "BACKGROUND")
     PixelUtil.SetSize(fill, UI.GetPixel(), metrics.xs, 1, 1)
-    PixelUtil.SetPoint(fill, "LEFT", self, "LEFT", 3, 0)
+    PixelUtil.SetPoint(fill, "LEFT", self, "LEFT", trackInset, 0)
     fill:SetColorTexture(colors.point:GetRGB())
     self.Fill = fill
 

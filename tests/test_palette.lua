@@ -13,12 +13,12 @@ local lib = harness.loadLibrary("BitForge")
 
 local COLOR_KEYS = {
     "point", "hover", "danger", "bg", "bgDisabled", "surface", "disabled",
-    "text", "textHover", "textDisabled", "edge", "edgeHover",
+    "text", "textHover", "textDisabled", "edge", "edgeHover", "selection",
 }
 
 local colorCount = 0
 for _ in pairs(lib.Colors) do colorCount = colorCount + 1 end
-harness.assertEqual(colorCount, 16, "lib.Colors has exactly sixteen entries")
+harness.assertEqual(colorCount, 17, "lib.Colors has exactly seventeen entries")
 
 for _, key in ipairs(COLOR_KEYS) do
     local color = lib.Colors[key]
@@ -35,6 +35,34 @@ harness.assertEqual(dangerR, expectedR, "danger's red channel matches the pinned
 harness.assertEqual(dangerG, expectedG, "danger's green channel matches the pinned hex")
 harness.assertEqual(dangerB, expectedB, "danger's blue channel matches the pinned hex")
 harness.assertEqual(dangerA, expectedA, "danger's alpha channel matches the pinned hex")
+
+-- point moved from #45B7D1 to a higher-chroma value in the same hue family:
+-- L* 69.3 -> 77.9, C* 32.8 -> 40.8, hue 223 -> 218. Pinned so a transcription
+-- typo fails here rather than in game.
+local pointR, pointG, pointB, pointA = lib.Colors.point:GetRGBA()
+local wantPointR, wantPointG, wantPointB, wantPointA =
+    CreateColorFromHexString("FF22D3EE"):GetRGBA()
+harness.assertEqual(pointR, wantPointR, "point's red channel matches the pinned hex")
+harness.assertEqual(pointG, wantPointG, "point's green channel matches the pinned hex")
+harness.assertEqual(pointB, wantPointB, "point's blue channel matches the pinned hex")
+harness.assertEqual(pointA, wantPointA, "point's alpha channel matches the pinned hex")
+
+-- The window ground's opacity lives in this token's alpha and nowhere else.
+-- Frame.lua used to carry it as a private 0.5, which meant every contrast
+-- value in the palette was computed against a ground that never appeared.
+--
+-- Pinned against the hex rather than against 0.95: the alpha byte is F2,
+-- which is 242/255 = 0.94901960..., and an equality against the decimal the
+-- comment rounds to can never pass. Every other pinned colour in this file
+-- compares to CreateColorFromHexString for the same reason.
+local bgR, bgG, bgB, bgA = lib.Colors.bg:GetRGBA()
+local wantBgR, wantBgG, wantBgB, wantBgA =
+    CreateColorFromHexString("F20E0F12"):GetRGBA()
+harness.assertEqual(bgR, wantBgR, "bg's red channel matches the pinned hex")
+harness.assertEqual(bgG, wantBgG, "bg's green channel matches the pinned hex")
+harness.assertEqual(bgB, wantBgB, "bg's blue channel matches the pinned hex")
+harness.assertEqual(bgA, wantBgA, "and its alpha does too")
+harness.assert(bgA < 1, "bg carries the window ground's opacity, rather than being opaque")
 
 -- the fonts
 
@@ -87,7 +115,7 @@ end
 -- object survived. `or` in the palette loop would pass identity here while
 -- leaving the previous minor's RGBA in place forever.
 local realCreateColorFromHexString = _G.CreateColorFromHexString
-local POINT_HEX, CHANGED_POINT_HEX = "FF45B7D1", "FF00FF00"
+local POINT_HEX, CHANGED_POINT_HEX = "FF22D3EE", "FF00FF00"
 _G.CreateColorFromHexString = function(hexString)
     if hexString == POINT_HEX then
         return realCreateColorFromHexString(CHANGED_POINT_HEX)
@@ -112,6 +140,13 @@ harness.assertEqual(newPointR, wantR, "upgrade applies the new minor's point red
 harness.assertEqual(newPointG, wantG, "upgrade applies the new minor's point green channel")
 harness.assertEqual(newPointB, wantB, "upgrade applies the new minor's point blue channel")
 harness.assertEqual(newPointA, wantA, "upgrade applies the new minor's point alpha channel")
+
+-- selection is derived from point, so an upgrade that changes the accent has
+-- to reach it too. A one-time derivation at first load would pass every
+-- assertion above and leave this one holding the previous minor's accent.
+harness.assertEqual(lib.Colors.selection.r, lib.Colors.point.r,
+    "upgrade re-derives selection from the new minor's point")
+harness.assertEqual(lib.Colors.selection.a, 0.25, "and keeps its quarter alpha")
 
 -- The ladder is an ordering claim, not a set of values: bg sits below surface
 -- sits below raised. disabled is a state, not a rung -- it is checked against
@@ -141,5 +176,24 @@ harness.assert(luminance(lib.Colors.edgeHover) > luminance(lib.Colors.edge),
     "and lifts further under the pointer")
 harness.assert(luminance(lib.Colors.text) > luminance(lib.Colors.textMuted),
     "body text is brighter than muted text")
+
+-- selection is point at a quarter alpha, derived rather than written as its
+-- own hex, so a change to the accent reaches the selection fill in one edit.
+local selectionR, selectionG, selectionB, selectionA = lib.Colors.selection:GetRGBA()
+harness.assertEqual(selectionR, lib.Colors.point.r, "selection takes point's red channel")
+harness.assertEqual(selectionG, lib.Colors.point.g, "selection takes point's green channel")
+harness.assertEqual(selectionB, lib.Colors.point.b, "selection takes point's blue channel")
+harness.assertEqual(selectionA, 0.25, "at a quarter alpha")
+
+-- The one pairing Frame.lua hard-codes both halves of. Nothing checked it
+-- before, which is how white-on-accent at 2.35:1 shipped.
+local function contrast(first, second)
+    local a, b = luminance(first), luminance(second)
+    local lighter, darker = math.max(a, b), math.min(a, b)
+    return (lighter + 0.05) / (darker + 0.05)
+end
+
+harness.assert(contrast(lib.Colors.bg, lib.Colors.point) >= 4.5,
+    "the title bar's own pairing -- bg text on a point band -- clears the AA floor")
 
 harness.done()

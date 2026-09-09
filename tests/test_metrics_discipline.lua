@@ -12,12 +12,20 @@
 -- whole purpose rather than satisfying it.
 local harness = dofile("tests/harness.lua")
 
--- Function -> the argument positions that carry a size. Positions are 1-based
--- within the parenthesised list as written, so a PixelUtil call's first
--- argument is the region and its last are snap hints, neither of which is a
--- size. A plain method is reached with ':' and carries no region argument of
--- its own -- self is implicit -- so its size positions start at 1, one lower
--- than the matching PixelUtil variant's.
+-- Function -> the argument positions that carry a size, for every call whose
+-- size sits at a fixed spot regardless of how it is written. Positions are
+-- 1-based within the parenthesised list as written, so a PixelUtil call's
+-- first argument is the region, and a plain method (reached with ':', self
+-- implicit) checks positions one lower than its PixelUtil counterpart.
+--
+-- PixelUtil.SetPoint belongs here rather than in TRAILING_PAIR below: per
+-- its signature at Interface/AddOns/Blizzard_SharedXML/PixelUtil.lua:51 --
+-- PixelUtil.SetPoint(region, point, relativeTo, relativePoint, offsetX,
+-- offsetY, minOffsetXPixels, minOffsetYPixels) -- it accepts only the full
+-- four-anchor form, so its offsets are always arguments 5 and 6 whether or
+-- not the two optional snap-hint arguments follow. Checking a fixed pair
+-- here is both correct and simpler than arity-keying it; the loop below
+-- already skips a position with nothing there, so a shorter call is fine.
 local CHECKED = {
     ["SetSize"]              = { 1, 2 },
     ["SetWidth"]             = { 1 },
@@ -26,34 +34,29 @@ local CHECKED = {
     ["PixelUtil.SetSize"]    = { 2, 3 },
     ["PixelUtil.SetWidth"]   = { 2 },
     ["PixelUtil.SetHeight"]  = { 2 },
+    ["PixelUtil.SetPoint"]   = { 5, 6 },
 }
 
---- Every Templates/ file lib.xml loads, read from lib.xml rather than copied
---- into a list here. A ninth template is a line in that file and nothing else,
---- so a hand-kept copy would leave it scanned by nobody -- which is the exact
---- failure this test exists to prevent, in the test itself.
----@return string[]
-local function templateFiles()
-    local handle = assert(io.open("lib.xml", "r"), "cannot open lib.xml")
-    local xml = handle:read("a")
-    handle:close()
+-- SetPoint is the one call left that is genuinely variadic: relativePoint
+-- defaults to point when omitted, so how many arguments come before the
+-- trailing offsets depends on which form was written --
+-- :SetPoint(point, x, y) is three, :SetPoint(point, relativeTo, x, y) is
+-- four (a real form: e.g. Blizzard_AnimaDiversionUI.lua:289), and
+-- :SetPoint(point, relativeTo, relativePoint, x, y) is five. A fixed
+-- position table cannot say that, which is why this one is keyed by
+-- argument count instead, checking the trailing two positions whatever they
+-- are. Any other arity is an anchor with no offsets and has nothing to
+-- check.
+local TRAILING_PAIR = {
+    ["SetPoint"] = { [3] = true, [4] = true, [5] = true },
+}
 
-    local files = {}
-    for file in xml:gmatch('<Script%s+file="([^"]+)"') do
-        -- The client reads Windows-separated paths out of XML; io.open here
-        -- wants this platform's own separator.
-        local path = file:gsub("\\", "/")
-        if path:find("^Templates/") then
-            files[#files + 1] = path
-        end
-    end
-
-    assert(#files > 0,
-        "lib.xml lists no Templates/ file -- the scan below would pass vacuously")
-    return files
-end
-
-local FILES = templateFiles()
+-- Skin.lua is scanned alongside the templates because it draws too --
+-- BuildWindowShell sizes a header and five borders. Being outside this list
+-- is how its header height stayed 30 through the pass that moved every other
+-- one to 32.
+local FILES = harness.libraryFiles("Templates/")
+FILES[#FILES + 1] = "Skin.lua"
 
 --- Split an argument list on top-level commas, so `max(a, b)` stays one
 --- argument and `GetPixel()` survives intact.
@@ -130,13 +133,35 @@ for _, path in ipairs(FILES) do
                     end
                 end
             end
+
+            for call, arities in pairs(TRAILING_PAIR) do
+                local pattern = call:gsub("%.", "%%.")
+                local prefix = call:find("%.") and pattern or (":" .. pattern)
+                local at = line:find(prefix .. "%s*%(")
+                if at then
+                    local open = line:find("%(", at)
+                    local list = argumentList(line, open)
+                    if list then
+                        local args = splitArguments(list)
+                        if arities[#args] then
+                            for position = #args - 1, #args do
+                                local literal = hasNumericLiteral(args[position])
+                                if literal then
+                                    offenders[#offenders + 1] = ("%s:%d  %s offset argument %d is the literal %s  --  %s")
+                                        :format(path, lineNumber, call, position, literal, line:match("^%s*(.-)%s*$"))
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         end
     end
     handle:close()
 end
 
 harness.assert(#offenders == 0, table.concat({
-    "no sizing call under Templates/ carries a magic number",
+    "no sizing or anchoring call in the library's drawing code carries a magic number",
     "",
     table.concat(offenders, "\n"),
     "",

@@ -27,10 +27,11 @@ Libs\LibBitForgeUI\Templates\Dropdown.lua
 Libs\LibBitForgeUI\Templates\Bar.lua
 Libs\LibBitForgeUI\Templates\Slider.lua
 Libs\LibBitForgeUI\Templates\TextWindow.lua
+Libs\LibBitForgeUI\Templates\ScrollList.lua
 ```
 
 `LibBitForgeUI.lua` builds the palette, fonts and media path; `Skin.lua` is
-the primitive layer the widgets below it build on; the eight
+the primitive layer the widgets below it build on; the nine
 `Templates\*.lua` files are the widget factories themselves. Loading only
 `LibBitForgeUI.lua` gets you the palette and fonts with no skin primitives,
 no widgets and no bridge — see **Media paths** below for the one difference

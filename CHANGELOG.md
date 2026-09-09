@@ -6,6 +6,26 @@ an embedder touches — a factory, a palette key, a font object, a media path,
 the skin bridge — and what embedding code has to change because of it. How any
 of it was implemented belongs in the commit.
 
+## [Unreleased]
+
+### Added
+
+- `lib.CreateScrollList(parent, options)`, a scroll list built from a `WowScrollBoxList`, a `MinimalScrollBar` and one of the client's two list-view constructors — **and the bar comes back already styled**, which is the reason it exists: nine surfaces across the suite that vendors this library built the trio by hand and seven of them reached the screen unstyled, because `Skin.StyleScrollBar` was a separate call. Size the returned frame; the split between box and bar is internal. `options.tree` picks the tree view over the linear one, `options.initializer` is required, and `elementType`, `extent`, `indent`, `padding` and `spacing` default to `"Button"` and the matching `lib.Metrics` tokens. It publishes `lib.Mixins.ScrollList` and `lib.Minimums.ScrollList` (120 × 48).
+
+- `Templates\ScrollList.lua` in `lib.xml`, last. **An embedder that lists the files in its own `.toc` instead of loading `lib.xml` has to add this line**; one pointing at `lib.xml` needs no change.
+
+- `lib.Colors.selection` — the accent at a quarter alpha, for a selected row's fill. Three embedders had each invented one and no two agreed. The palette now has seventeen entries.
+
+### Changed
+
+- **`lib.Colors.bg` now carries an alpha of its own (`F20E0F12`), and this is the one change that can reach your code.** It is the window ground's opacity, which used to be a private `0.5` inside `lib.CreateFrame` — so every contrast value this palette was chosen for was computed against a ground that never appeared on screen, and over a bright scene the muted text token measured 1.37:1. **A call site that wants `bg` as a solid colour must now read `GetRGB` rather than `GetRGBA`**: three components, no alpha. A call site painting a window ground wants `GetRGBA` and is already right.
+
+- **`lib.Colors.point` moves from `#45B7D1` to `#22D3EE`** — the same hue five degrees over, with the chroma and lightness raised (L\* 69.3 → 77.9, C\* 32.8 → 40.8). Nothing about how it is used changes; every widget drawing with it follows the value.
+
+- **A titled `lib.CreateFrame` draws its title dark on the accent instead of white on it.** White on the old accent measured 2.35:1 against a 4.5:1 floor and would have measured 1.81:1 on the new one — a brighter accent makes white worse, not better. The title text is now `lib.Colors.bg`, at 10.61:1.
+
+- **`lib.Skin.BuildWindowShell`'s default header height is `lib.Metrics.control` (32), where it was a hard-coded 30.** A caller passing an explicit `options.headerHeight` is unaffected; one relying on the default gets a header two pixels taller. The 30 was the last copy of a value moved to 32 everywhere else one release ago.
+
 ## [v12.1.0.1] — 2026-09-04
 
 ### Added

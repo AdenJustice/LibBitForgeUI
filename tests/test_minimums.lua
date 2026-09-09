@@ -8,11 +8,11 @@ local harness = dofile("tests/harness.lua")
 harness.resetLibStub()
 local lib = harness.loadLibrary("BitForge")
 dofile("Skin.lua")
-for _, file in ipairs({
-    "Frame", "Buttons", "CloseButton", "EditBox",
-    "Dropdown", "Bar", "Slider", "TextWindow",
-}) do
-    dofile("Templates/" .. file .. ".lua")
+-- Read from lib.xml rather than listed here: a hand-kept copy is how a new
+-- widget gets a floor nobody checks -- the correspondence below passes
+-- happily when the mixin it should have caught was never loaded.
+for _, path in ipairs(harness.libraryFiles("Templates/")) do
+    dofile(path)
 end
 
 for name in pairs(lib.Mixins) do

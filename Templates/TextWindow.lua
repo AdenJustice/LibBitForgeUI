@@ -98,7 +98,7 @@ function UI.CreateTextWindow(options)
     -- CreateCloseButton ships no OnClick deliberately, so every window says what
     -- its X does.
     local close = UI.CreateCloseButton(frame)
-    PixelUtil.SetPoint(close, "TOPRIGHT", frame, "TOPRIGHT", -4, -4)
+    PixelUtil.SetPoint(close, "TOPRIGHT", frame, "TOPRIGHT", -metrics.xs, -metrics.xs)
     close:SetScript("OnClick", function() frame:Hide() end)
 
     -- Escape closes a plain frame only if the client knows its name. Guarded

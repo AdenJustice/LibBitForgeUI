@@ -3,6 +3,7 @@ local lib = LibStub and LibStub:GetLibrary(MAJOR, true)
 if not lib then return end
 
 local skin = lib.Skin
+local metrics = lib.Metrics
 
 local max = math.max
 local select = select
@@ -182,7 +183,14 @@ function skin.BuildWindowShell(frameObject, options)
     options = options or {}
     local includeHeader = options.includeHeader == true
     local includeInnerTop = options.includeInnerTop ~= false
-    local headerHeight = options.headerHeight or 30
+    local headerHeight = options.headerHeight or metrics.control
+
+    -- One physical pixel, and the inner line's two, resolved once. Binding a
+    -- GetPixel() result to a local is not the laundering the discipline scan
+    -- warns about -- it is a call, not a literal, and five borders drawn from
+    -- the same value read better named than repeated.
+    local hairline = lib.GetPixel()
+    local innerInset = lib.GetPixel(2)
 
     local shell = windowShellByFrame[frameObject]
     if not shell then
@@ -192,14 +200,14 @@ function skin.BuildWindowShell(frameObject, options)
 
     if not shell.background then
         shell.background = frameObject:CreateTexture(nil, "BACKGROUND", nil, -8)
-        shell.background:SetPoint("TOPLEFT", frameObject, "TOPLEFT", 1, -1)
-        shell.background:SetPoint("BOTTOMRIGHT", frameObject, "BOTTOMRIGHT", -1, 1)
+        shell.background:SetPoint("TOPLEFT", frameObject, "TOPLEFT", hairline, -hairline)
+        shell.background:SetPoint("BOTTOMRIGHT", frameObject, "BOTTOMRIGHT", -hairline, hairline)
     end
 
     if includeHeader and not shell.header then
         shell.header = frameObject:CreateTexture(nil, "BACKGROUND", nil, -7)
-        shell.header:SetPoint("TOPLEFT", frameObject, "TOPLEFT", 1, -1)
-        shell.header:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -1, -1)
+        shell.header:SetPoint("TOPLEFT", frameObject, "TOPLEFT", hairline, -hairline)
+        shell.header:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -hairline, -hairline)
         shell.header:SetHeight(headerHeight)
     elseif includeHeader and shell.header then
         shell.header:SetHeight(headerHeight)
@@ -207,37 +215,37 @@ function skin.BuildWindowShell(frameObject, options)
 
     if not shell.borderTop then
         shell.borderTop = frameObject:CreateTexture(nil, "BORDER", nil, 7)
-        shell.borderTop:SetPoint("TOPLEFT", frameObject, "TOPLEFT", 1, -1)
-        shell.borderTop:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -1, -1)
-        shell.borderTop:SetHeight(1)
+        shell.borderTop:SetPoint("TOPLEFT", frameObject, "TOPLEFT", hairline, -hairline)
+        shell.borderTop:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -hairline, -hairline)
+        shell.borderTop:SetHeight(hairline)
     end
 
     if not shell.borderBottom then
         shell.borderBottom = frameObject:CreateTexture(nil, "BORDER", nil, 7)
-        shell.borderBottom:SetPoint("BOTTOMLEFT", frameObject, "BOTTOMLEFT", 1, 1)
-        shell.borderBottom:SetPoint("BOTTOMRIGHT", frameObject, "BOTTOMRIGHT", -1, 1)
-        shell.borderBottom:SetHeight(1)
+        shell.borderBottom:SetPoint("BOTTOMLEFT", frameObject, "BOTTOMLEFT", hairline, hairline)
+        shell.borderBottom:SetPoint("BOTTOMRIGHT", frameObject, "BOTTOMRIGHT", -hairline, hairline)
+        shell.borderBottom:SetHeight(hairline)
     end
 
     if not shell.borderLeft then
         shell.borderLeft = frameObject:CreateTexture(nil, "BORDER", nil, 7)
-        shell.borderLeft:SetPoint("TOPLEFT", frameObject, "TOPLEFT", 1, -1)
-        shell.borderLeft:SetPoint("BOTTOMLEFT", frameObject, "BOTTOMLEFT", 1, 1)
-        shell.borderLeft:SetWidth(1)
+        shell.borderLeft:SetPoint("TOPLEFT", frameObject, "TOPLEFT", hairline, -hairline)
+        shell.borderLeft:SetPoint("BOTTOMLEFT", frameObject, "BOTTOMLEFT", hairline, hairline)
+        shell.borderLeft:SetWidth(hairline)
     end
 
     if not shell.borderRight then
         shell.borderRight = frameObject:CreateTexture(nil, "BORDER", nil, 7)
-        shell.borderRight:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -1, -1)
-        shell.borderRight:SetPoint("BOTTOMRIGHT", frameObject, "BOTTOMRIGHT", -1, 1)
-        shell.borderRight:SetWidth(1)
+        shell.borderRight:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -hairline, -hairline)
+        shell.borderRight:SetPoint("BOTTOMRIGHT", frameObject, "BOTTOMRIGHT", -hairline, hairline)
+        shell.borderRight:SetWidth(hairline)
     end
 
     if includeInnerTop and not shell.innerTop then
         shell.innerTop = frameObject:CreateTexture(nil, "BORDER", nil, 6)
-        shell.innerTop:SetPoint("TOPLEFT", frameObject, "TOPLEFT", 2, -2)
-        shell.innerTop:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -2, -2)
-        shell.innerTop:SetHeight(1)
+        shell.innerTop:SetPoint("TOPLEFT", frameObject, "TOPLEFT", innerInset, -innerInset)
+        shell.innerTop:SetPoint("TOPRIGHT", frameObject, "TOPRIGHT", -innerInset, -innerInset)
+        shell.innerTop:SetHeight(hairline)
     end
 
     return shell

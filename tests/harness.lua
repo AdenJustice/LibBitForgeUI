@@ -355,11 +355,15 @@ end
 -- one. GetRegions is the same problem one level up -- StripFrameTextures
 -- feature-detects it with "not frameObject.GetRegions" before ever calling
 -- it, and the phantom method is truthy for any capitalized key, so that
--- check would never see it as absent without landing here too.
+-- check would never see it as absent without landing here too. Title is the
+-- same probe in Frame.lua's own SetTitle ("if not self.Title then error(...)
+-- end") -- without it here, an untitled frame's phantom method reads truthy
+-- and the guard it is meant to trip never fires.
 local OPTIONAL_WIDGET_FIELDS = {
     Icon = true, Accent = true, Lead = true, Link = true, Footnote = true,
     Label = true,
     NineSlice = true, Border = true, Bg = true, BG = true, GetRegions = true,
+    Title = true,
 }
 
 --- A stand-in for a WoW frame or region.
@@ -821,6 +825,33 @@ function harness.installGlobals()
             return table.unpack(results, 1, results.n)
         end
     end
+
+    -- Blizzard_SharedXML/Scroll/ScrollBoxListView.lua's two view
+    -- constructors, and the ScrollUtil call that binds a box, a bar and a
+    -- view together. A widget only ever configures a view and hands it over,
+    -- so these record rather than model: the constructor's own arguments are
+    -- kept on the view, because the padding and indent a factory passes are
+    -- exactly what a test needs to read back.
+    local function newScrollView(kind, ...)
+        local view = harness.newFrame(kind)
+        view.constructorArgs = { n = select("#", ...), ... }
+        return view
+    end
+
+    _G.CreateScrollBoxListLinearView = function(...)
+        return newScrollView("ScrollBoxListLinearView", ...)
+    end
+
+    _G.CreateScrollBoxListTreeListView = function(...)
+        return newScrollView("ScrollBoxListTreeListView", ...)
+    end
+
+    _G.ScrollUtil = {
+        InitScrollBoxListWithScrollBar = function(scrollBox, scrollBar, view)
+            scrollBox.initialisedWith = view
+            scrollBar.initialisedWith = view
+        end,
+    }
 end
 
 function harness.newNamespace()
@@ -833,6 +864,32 @@ end
 function harness.loadModule(path, ns, addonName)
     local chunk = assert(loadfile(path))
     return chunk(assert(addonName, "harness.loadModule: addonName is required"), ns)
+end
+
+--- Every file `lib.xml` loads, in its own order, with separators normalised
+--- to this platform's. Read from `lib.xml` rather than copied into a list in
+--- each test, because a hand-kept copy leaves a newly added file scanned or
+--- loaded by nobody -- which is the exact failure the tests that call this
+--- exist to prevent.
+---@param prefix string?  Keep only paths starting with this, e.g. "Templates/".
+---@return string[]
+function harness.libraryFiles(prefix)
+    local handle = assert(io.open("lib.xml", "r"), "cannot open lib.xml")
+    local xml = handle:read("a")
+    handle:close()
+
+    local files = {}
+    for file in xml:gmatch('<Script%s+file="([^"]+)"') do
+        -- The client reads Windows-separated paths out of XML; io.open here
+        -- wants this platform's own separator.
+        local path = file:gsub("\\", "/")
+        if not prefix or path:find("^" .. prefix) then
+            files[#files + 1] = path
+        end
+    end
+
+    assert(#files > 0, "lib.xml lists no file matching " .. tostring(prefix))
+    return files
 end
 
 local function fail(label, detail)

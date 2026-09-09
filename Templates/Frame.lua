@@ -20,8 +20,6 @@ local BACKDROP_CONFIG = {
     insets = { left = 0, right = 0, top = 0, bottom = 0 },
 }
 
-local BACKDROP_ALPHA = 0.5
-
 ---@class BitForge.FrameMixin : BackdropTemplate
 ---@field Title    FontString?  Present when created with a title bar.
 ---@field TitleBar Texture?     Present when created with a title bar.
@@ -31,7 +29,7 @@ local FrameMixin = {}
 function FrameMixin:OnLoad(hasTitle)
     self:SetClampedToScreen(true)
     self:SetBackdrop(BACKDROP_CONFIG)
-    self:SetBackdropColor(colors.bg.r, colors.bg.g, colors.bg.b, BACKDROP_ALPHA)
+    self:SetBackdropColor(colors.bg:GetRGBA())
     self:SetBackdropBorderColor(colors.edge:GetRGBA())
 
     if hasTitle then
@@ -47,9 +45,12 @@ function FrameMixin:OnLoad(hasTitle)
         title:SetJustifyH("CENTER")
         title:SetJustifyV("MIDDLE")
         PixelUtil.SetHeight(title, metrics.control)
-        title:SetTextColor(1, 1, 1, 1)
-        PixelUtil.SetPoint(title, "TOPLEFT", self, "TOPLEFT", 12, 0)
-        PixelUtil.SetPoint(title, "TOPRIGHT", self, "TOPRIGHT", -12, 0)
+        -- Dark on the accent, not white on it: white on point measures
+        -- 1.81:1 against a 4.5:1 floor, and the brighter the accent the
+        -- worse that gets. bg on point measures 10.61:1.
+        title:SetTextColor(colors.bg:GetRGB())
+        PixelUtil.SetPoint(title, "TOPLEFT", self, "TOPLEFT", metrics.md, 0)
+        PixelUtil.SetPoint(title, "TOPRIGHT", self, "TOPRIGHT", -metrics.md, 0)
         self.Title = title
     end
 
